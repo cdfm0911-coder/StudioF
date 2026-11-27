@@ -104,10 +104,24 @@ alter table assignments enable row level security;
 alter table progress enable row level security;
 alter table app_users enable row level security;
 
-do $$
-declare t text;
-begin
-  foreach t in array['members','exercises','classes','bookings','payments','routines','assignments','progress','app_users'] loop
-    execute format('create policy "acceso app" on %I for all to anon, authenticated using (true) with check (true)', t);
-  end loop;
-end $$;
+-- Una política por tabla, en SQL simple (sin bloque DO), para que el
+-- SQL Editor lo ejecute sin problemas. Re-ejecutable: si la política ya
+-- existe, se borra y se vuelve a crear.
+drop policy if exists "acceso app" on members;
+create policy "acceso app" on members for all to anon, authenticated using (true) with check (true);
+drop policy if exists "acceso app" on exercises;
+create policy "acceso app" on exercises for all to anon, authenticated using (true) with check (true);
+drop policy if exists "acceso app" on classes;
+create policy "acceso app" on classes for all to anon, authenticated using (true) with check (true);
+drop policy if exists "acceso app" on bookings;
+create policy "acceso app" on bookings for all to anon, authenticated using (true) with check (true);
+drop policy if exists "acceso app" on payments;
+create policy "acceso app" on payments for all to anon, authenticated using (true) with check (true);
+drop policy if exists "acceso app" on routines;
+create policy "acceso app" on routines for all to anon, authenticated using (true) with check (true);
+drop policy if exists "acceso app" on assignments;
+create policy "acceso app" on assignments for all to anon, authenticated using (true) with check (true);
+drop policy if exists "acceso app" on progress;
+create policy "acceso app" on progress for all to anon, authenticated using (true) with check (true);
+drop policy if exists "acceso app" on app_users;
+create policy "acceso app" on app_users for all to anon, authenticated using (true) with check (true);
