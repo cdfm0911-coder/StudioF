@@ -35,6 +35,11 @@ export default function ClasesPage() {
   const [coachScope, setCoachScope] = useState<"single" | "series">("single");
   const [editingRuleCoachId, setEditingRuleCoachId] = useState<number | null>(null);
   const [ruleCoachDraft, setRuleCoachDraft] = useState("");
+  const [editingRuleId, setEditingRuleId] = useState<number | null>(null);
+  const [ruleTimeDraft, setRuleTimeDraft] = useState("18:00");
+  const [ruleDaysDraft, setRuleDaysDraft] = useState<number[]>([1, 2, 3, 4, 5]);
+  // Horarios semanales ordenados por hora (y título): el registro de series.
+  const activeRules = [...data.classRules].filter((r) => r.active).sort((a, b) => a.startTime.localeCompare(b.startTime) || a.title.localeCompare(b.title));
 
   const days = weekDates();
   const isAdmin = currentUser?.role === "administrador";
@@ -213,13 +218,11 @@ export default function ClasesPage() {
         <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
           <h2 className="text-lg font-semibold">Horarios semanales</h2>
           <p className="mt-1 text-sm text-gray-500">Clases en serie: se repiten cada semana hasta que se elimine la serie.</p>
-          {data.classRules.filter((r) => r.active).length === 0 ? (
+          {activeRules.length === 0 ? (
             <p className="mt-2 text-sm text-gray-500">No hay horarios semanales.</p>
           ) : (
             <ul className="mt-3 space-y-3">
-              {data.classRules
-                .filter((r) => r.active)
-                .map((rule) => {
+              {activeRules.map((rule) => {
                   const skips = data.classRuleSkips.filter((s) => s.ruleId === rule.id);
                   return (
                     <li key={rule.id} className="rounded-lg border border-gray-100 p-3">
@@ -234,12 +237,48 @@ export default function ClasesPage() {
                             Cambiar entrenador
                           </button>
                         )}
+                        {isAdmin && editingRuleId !== rule.id && (
+                          <button onClick={() => { setEditingRuleId(rule.id); setRuleTimeDraft(rule.startTime); setRuleDaysDraft([...rule.days]); }} className="text-sm text-blue-700 hover:underline">
+                            Editar horario
+                          </button>
+                        )}
                         {isAdmin && (
                           <button onClick={() => deleteClassRule(rule.id)} className="ml-auto text-sm text-red-600 hover:underline">
                             Eliminar serie
                           </button>
                         )}
                       </div>
+                      {isAdmin && editingRuleId === rule.id && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <input type="time" value={ruleTimeDraft} onChange={(e) => setRuleTimeDraft(e.target.value)} className="rounded-lg border border-gray-300 px-2 py-1 text-sm" required />
+                          <span className="flex flex-wrap items-center gap-1">
+                            {DAY_NAMES.map((name, d) => (
+                              <label key={d} className={`cursor-pointer rounded-full px-2 py-1 text-xs ${ruleDaysDraft.includes(d) ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700"}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={ruleDaysDraft.includes(d)}
+                                  onChange={() =>
+                                    setRuleDaysDraft((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]))
+                                  }
+                                  className="hidden"
+                                />
+                                {name}
+                              </label>
+                            ))}
+                          </span>
+                          <button
+                            onClick={() => {
+                              if (ruleDaysDraft.length === 0) return;
+                              saveClassRule({ ...rule, startTime: ruleTimeDraft, days: [...ruleDaysDraft].sort((a, b) => a - b) });
+                              setEditingRuleId(null);
+                            }}
+                            className="rounded-lg bg-gray-900 px-3 py-1 text-sm text-white"
+                          >
+                            Guardar
+                          </button>
+                          <button onClick={() => setEditingRuleId(null)} className="text-sm text-gray-500 underline">Cancelar</button>
+                        </div>
+                      )}
                       {isAdmin && editingRuleCoachId === rule.id && (
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <input value={ruleCoachDraft} onChange={(e) => setRuleCoachDraft(e.target.value)} placeholder="Nombre del entrenador" className="rounded-lg border border-gray-300 px-2 py-1 text-sm" />

@@ -378,6 +378,23 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       const item = r.id ? r : { ...r, id: nextId(rules) };
       update("classRules", (items) => (r.id ? items.map((x) => (x.id === r.id ? item : x)) : [...items, item]));
       void syncRow("classRules", item as unknown as Record<string, unknown>);
+      // Si cambia la hora de la serie, las clases sueltas que coinciden con el horario
+      // anterior se mueven a la nueva hora para que no queden dos sesiones ese día.
+      // Los días que se quitan de la serie no se borran: esas clases de la semana en curso se quedan.
+      const old = r.id ? rules.find((x) => x.id === r.id) : undefined;
+      if (old && old.startTime !== r.startTime) {
+        const affected = data.classes.filter((c) => {
+          if (c.title !== old.title || c.startTime !== old.startTime) return false;
+          if (c.date < old.startDate) return false;
+          const weekday = new Date(c.date + "T12:00:00").getDay();
+          return old.days.includes(weekday);
+        });
+        if (affected.length > 0) {
+          const ids = new Set(affected.map((c) => c.id));
+          update("classes", (items) => items.map((x) => (ids.has(x.id) ? { ...x, startTime: r.startTime } : x)));
+          for (const c of affected) void syncRow("classes", { ...c, startTime: r.startTime } as unknown as Record<string, unknown>);
+        }
+      }
     };
     const deleteClassRule = (id: number) => {
       const skips = ruleSkips.filter((s) => s.ruleId === id);
