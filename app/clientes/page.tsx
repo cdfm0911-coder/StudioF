@@ -23,12 +23,16 @@ export default function ClientesPage() {
   const routine = activeRoutine ? data.routines.find((r) => r.id === activeRoutine.routineId) : null;
   const progress = selected ? data.progress.filter((p) => p.memberId === selected.id).sort((a, b) => a.date.localeCompare(b.date)) : [];
   const payments = selected ? data.payments.filter((p) => p.memberId === selected.id) : [];
+  // Mensualidad del mes en curso (solo estado, sin importes): lo que ven los entrenadores.
+  const currentMonth = todayISO().slice(0, 7);
+  const monthlyPayment = payments.find((p) => p.dueDate.slice(0, 7) === currentMonth);
+  const monthlyPaid = monthlyPayment ? Boolean(monthlyPayment.paidDate) : false;
 
   return (
     <RequireAuth roles={["administrador", "entrenador"]}>
       <main className="mx-auto max-w-6xl px-4 py-6">
         <h1 className="text-2xl font-bold">Clientes</h1>
-        <p className="mt-1 text-sm text-gray-500">Ficha completa, rutina actual, pagos y evolución de peso.</p>
+        <p className="mt-1 text-sm text-gray-500">{isAdmin ? "Ficha completa, rutina actual, pagos y evolución de peso." : "Ficha completa, rutina actual, mensualidad y evolución de peso."}</p>
 
         <form
           className="mt-5 flex flex-wrap gap-2 rounded-xl border border-gray-200 bg-white p-4"
@@ -84,13 +88,24 @@ export default function ClientesPage() {
                       ))}
                     </ul>
                   )}
-                  <p className="mt-2 text-sm"><strong>Pagos:</strong></p>
-                  <ul className="text-sm text-gray-700">
-                    {payments.map((p) => (
-                      <li key={p.id}>{p.concept} · {formatMXN(p.amountCents)} · vence {formatDateEs(p.dueDate)} · {p.paidDate ? `pagado ${formatDateEs(p.paidDate)}` : "pendiente"}</li>
-                    ))}
-                    {payments.length === 0 && <li className="text-gray-500">Sin pagos.</li>}
-                  </ul>
+                  {isAdmin ? (
+                    <>
+                      <p className="mt-2 text-sm"><strong>Pagos:</strong></p>
+                      <ul className="text-sm text-gray-700">
+                        {payments.map((p) => (
+                          <li key={p.id}>{p.concept} · {formatMXN(p.amountCents)} · vence {formatDateEs(p.dueDate)} · {p.paidDate ? `pagado ${formatDateEs(p.paidDate)}` : "pendiente"}</li>
+                        ))}
+                        {payments.length === 0 && <li className="text-gray-500">Sin pagos.</li>}
+                      </ul>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-sm">
+                      <strong>Mensualidad:</strong>{" "}
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${monthlyPaid ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-800"}`}>
+                        {monthlyPaid ? "Pagada" : "Pendiente"}
+                      </span>
+                    </p>
+                  )}
                 </section>
 
                 <section className="rounded-xl border border-gray-200 bg-white p-4">

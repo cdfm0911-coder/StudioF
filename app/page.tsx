@@ -6,7 +6,8 @@ import { useGym } from "@/lib/store";
 import { formatMXN, formatDateEs, paymentStatus, PAYMENT_STATUS_LABEL, paymentWhatsAppUrl, todayISO } from "@/lib/utils";
 
 export default function HoyPage() {
-  const { data, loading } = useGym();
+  const { data, loading, currentUser } = useGym();
+  const isAdmin = currentUser?.role === "administrador";
   const today = todayISO();
   const activeClients = data.members.filter((m) => m.status === "activo").length;
   const todaysClasses = data.classes.filter((c) => c.date === today);
@@ -36,15 +37,18 @@ export default function HoyPage() {
               {todaysClasses.length} · {todaysBookings} reservas
             </p>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-sm text-gray-500">Pendiente de cobro</p>
-            <p className="mt-1 text-3xl font-bold">{formatMXN(pendingTotal)}</p>
-            <p className="text-xs text-gray-500">{pending.length} pagos pendientes</p>
-          </div>
+          {isAdmin && (
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <p className="text-sm text-gray-500">Pendiente de cobro</p>
+              <p className="mt-1 text-3xl font-bold">{formatMXN(pendingTotal)}</p>
+              <p className="text-xs text-gray-500">{pending.length} pagos pendientes</p>
+            </div>
+          )}
         </div>
 
-        <section className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h2 className="text-lg font-semibold">Avisos de pago</h2>
+        {isAdmin && (
+          <section className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <h2 className="text-lg font-semibold">Avisos de pago</h2>
           <p className="text-sm text-gray-600">
             Pagos que vencen en los próximos 5 días, hoy o ya vencidos. Los que vencen en exactamente 5 días se
             destacan como «avisar hoy».
@@ -91,6 +95,7 @@ export default function HoyPage() {
             </ul>
           )}
         </section>
+        )}
 
         <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
           <h2 className="text-lg font-semibold">Clases de hoy</h2>
