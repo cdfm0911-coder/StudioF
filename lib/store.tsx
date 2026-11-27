@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { SEED_DATA } from "./seed";
 import { getSupabase, hasSupabase } from "./supabaseClient";
 import {
+  AppSetting,
   AppUser,
   Assignment,
   Booking,
@@ -53,6 +54,7 @@ interface GymContextValue {
   restoreClassDay: (ruleId: number, date: string) => void;
   setClassCoach: (classId: number, coach: string) => void;
   setRuleCoach: (ruleId: number, coach: string) => void;
+  saveSetting: (key: string, value: string) => void;
   bookMember: (classId: number, memberId: number) => void;
   cancelBooking: (classId: number, memberId: number) => void;
   setAttendance: (bookingId: number, attended: boolean | null) => void;
@@ -79,6 +81,11 @@ export function useGym(): GymContextValue {
   const ctx = useContext(GymContext);
   if (!ctx) throw new Error("useGym debe usarse dentro de GymProvider");
   return ctx;
+}
+
+/** Lee un ajuste por clave, con valor por defecto si aún no está guardado. */
+export function getSetting(settings: AppSetting[] | undefined, key: string, fallback: string): string {
+  return settings?.find((s) => s.key === key)?.value ?? fallback;
 }
 
 // --- Mapeo Supabase <-> tipos (las tablas usan snake_case) ---
@@ -133,6 +140,7 @@ const TABLES: (keyof GymData)[] = [
   "classes",
   "classRules",
   "classRuleSkips",
+  "settings",
   "bookings",
   "payments",
   "exercises",
@@ -146,6 +154,7 @@ const TABLE_NAME: Record<keyof GymData, string> = {
   classes: "classes",
   classRules: "class_rules",
   classRuleSkips: "class_rule_skips",
+  settings: "settings",
   bookings: "bookings",
   payments: "payments",
   exercises: "exercises",
@@ -236,6 +245,7 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
               // Datos guardados antes de los horarios semanales: normalizar.
               if (!Array.isArray(parsed.classRules)) parsed.classRules = [];
               if (!Array.isArray(parsed.classRuleSkips)) parsed.classRuleSkips = [];
+              if (!Array.isArray(parsed.settings)) parsed.settings = [];
               setData(parsed);
             }
           }
@@ -466,6 +476,14 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
         for (const c of affected) void syncRow("classes", { ...c, coach: name } as unknown as Record<string, unknown>);
       }
     };
+
+    // Guardar un ajuste (clave/valor), p. ej. la plantilla de WhatsApp.
+    const saveSetting = (key: string, value: string) => {
+      const existing = (data.settings ?? []).find((s) => s.key === key);
+      const item: AppSetting = existing ? { ...existing, value } : { id: nextId(data.settings ?? []), key, value };
+      update("settings", (items) => (existing ? items.map((x) => (x.id === existing.id ? item : x)) : [...items, item]));
+      void syncRow("settings", item as unknown as Record<string, unknown>);
+    };
     const deleteClass = (id: number) => {
       // Una sesión virtual es un día de una serie: eliminarla solo cancela ese día.
       const virtual = expandedClasses.find((c) => c.id === id && c.virtual);
@@ -646,6 +664,7 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       restoreClassDay,
       setClassCoach,
       setRuleCoach,
+      saveSetting,
       bookMember,
       cancelBooking,
       setAttendance,

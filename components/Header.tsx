@@ -13,6 +13,7 @@ const NAV_ADMIN = [
   { href: "/ejercicios", label: "Ejercicios" },
   { href: "/clientes", label: "Clientes" },
   { href: "/accesos", label: "Accesos" },
+  { href: "/ajustes", label: "Ajustes" },
 ];
 
 const NAV_TRAINER = [

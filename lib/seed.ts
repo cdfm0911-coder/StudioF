@@ -1,4 +1,5 @@
 import { GymData } from "./types";
+import { DEFAULT_WHATSAPP_TEMPLATE } from "./utils";
 
 export const SEED_DATA: GymData = {
   members: [
@@ -82,6 +83,10 @@ export const SEED_DATA: GymData = {
     { id: 3, title: "Hyrox", type: "Sesión grupal", days: [1, 2, 3, 4, 5], startDate: "2026-11-27", startTime: "19:00", durationMin: 60, coach: "Jesus", capacity: 12, notes: "", active: true },
   ],
   classRuleSkips: [],
+  settings: [
+    { id: 1, key: "whatsapp_template", value: DEFAULT_WHATSAPP_TEMPLATE },
+    { id: 2, key: "whatsapp_number", value: "" },
+  ],
   bookings: [],
   payments: [
     { id: 1, memberId: 1, concept: "Cuota mensual", amountCents: 55000, dueDate: "2026-11-25", paidDate: null, method: "" },

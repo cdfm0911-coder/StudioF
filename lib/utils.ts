@@ -40,13 +40,42 @@ export function normalizePhoneForWhatsApp(phone: string): string | null {
   return digits;
 }
 
-export function paymentWhatsAppUrl(p: Payment, memberName: string, memberPhone: string): string | null {
+/** Plantilla por defecto del aviso de pago por WhatsApp.
+ *  Variables: {nombre}, {concepto}, {importe}, {vencimiento}, {numero_gym}. */
+export const DEFAULT_WHATSAPP_TEMPLATE =
+  "Hola {nombre}, te recordamos tu pago de Studio Functional Fitness: {concepto} por {importe}, que {vencimiento}. ¿Te ayudamos con algo?";
+
+export function renderWhatsAppTemplate(
+  template: string,
+  vars: { nombre: string; concepto: string; importe: string; vencimiento: string; numeroGym: string }
+): string {
+  return (template || DEFAULT_WHATSAPP_TEMPLATE)
+    .replaceAll("{nombre}", vars.nombre)
+    .replaceAll("{concepto}", vars.concepto)
+    .replaceAll("{importe}", vars.importe)
+    .replaceAll("{vencimiento}", vars.vencimiento)
+    .replaceAll("{numero_gym}", vars.numeroGym);
+}
+
+export function paymentWhatsAppUrl(
+  p: Payment,
+  memberName: string,
+  memberPhone: string,
+  template: string = DEFAULT_WHATSAPP_TEMPLATE,
+  gymNumber: string = ""
+): string | null {
   const wa = normalizePhoneForWhatsApp(memberPhone);
   if (!wa) return null;
   const days = daysUntil(p.dueDate);
   const when =
     days < 0 ? `venció el ${formatDateEs(p.dueDate)}` : days === 0 ? "vence hoy" : `vence el ${formatDateEs(p.dueDate)}`;
-  const text = `Hola ${memberName}, te recordamos tu pago de Studio Functional Fitness: ${p.concept} por ${formatMXN(p.amountCents)}, que ${when}. ¿Te ayudamos con algo?`;
+  const text = renderWhatsAppTemplate(template, {
+    nombre: memberName,
+    concepto: p.concept,
+    importe: formatMXN(p.amountCents),
+    vencimiento: when,
+    numeroGym: gymNumber,
+  });
   return `https://wa.me/${wa}?text=${encodeURIComponent(text)}`;
 }
 

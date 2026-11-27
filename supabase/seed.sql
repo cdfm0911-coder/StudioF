@@ -136,6 +136,13 @@ overriding system value values
   (3, 'Hyrox', 'Sesión grupal', array[1,2,3,4,5], '2026-11-27', '19:00', 60, 12, 'Jesus', '', true)
 on conflict (id) do nothing;
 
+-- Ajustes: plantilla de WhatsApp y número del gimnasio.
+insert into settings (id, key, value)
+overriding system value values
+  (1, 'whatsapp_template', 'Hola {nombre}, te recordamos tu pago de Studio Functional Fitness: {concepto} por {importe}, que {vencimiento}. ¿Te ayudamos con algo?'),
+  (2, 'whatsapp_number', '')
+on conflict (id) do nothing;
+
 -- Rutinas, asignaciones, reservas y progreso: 0 en la app original, se empieza vacío.
 -- Secuencias al día tras insertar IDs fijos:
 select setval(pg_get_serial_sequence('members', 'id'), (select max(id) from members));
@@ -144,3 +151,4 @@ select setval(pg_get_serial_sequence('payments', 'id'), (select max(id) from pay
 select setval(pg_get_serial_sequence('exercises', 'id'), (select max(id) from exercises));
 select setval(pg_get_serial_sequence('class_rules', 'id'), coalesce((select max(id) from class_rules), 1));
 select setval(pg_get_serial_sequence('class_rule_skips', 'id'), coalesce((select max(id) from class_rule_skips), 1));
+select setval(pg_get_serial_sequence('settings', 'id'), coalesce((select max(id) from settings), 1));

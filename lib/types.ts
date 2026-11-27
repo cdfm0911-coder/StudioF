@@ -132,6 +132,13 @@ export interface AppUser {
   pin: string;
 }
 
+/** Ajuste configurable (clave/valor), p. ej. la plantilla de WhatsApp. */
+export interface AppSetting {
+  id: number;
+  key: string;
+  value: string;
+}
+
 export interface GymData {
   members: Member[];
   classes: GymClass[];
@@ -144,4 +151,5 @@ export interface GymData {
   users: AppUser[];
   classRules: ClassRule[];
   classRuleSkips: ClassRuleSkip[];
+  settings: AppSetting[];
 }

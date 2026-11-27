@@ -1,0 +1,109 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { RequireAuth } from "@/components/Login";
+import { getSetting, useGym } from "@/lib/store";
+import { DEFAULT_WHATSAPP_TEMPLATE, renderWhatsAppTemplate } from "@/lib/utils";
+
+const VARS = ["{nombre}", "{concepto}", "{importe}", "{vencimiento}", "{numero_gym}"];
+
+export default function AjustesPage() {
+  const { data, currentUser, saveSetting } = useGym();
+  const isAdmin = currentUser?.role === "administrador";
+  const template = getSetting(data.settings, "whatsapp_template", DEFAULT_WHATSAPP_TEMPLATE);
+  const gymNumber = getSetting(data.settings, "whatsapp_number", "");
+  const [templateDraft, setTemplateDraft] = useState(template);
+  const [numberDraft, setNumberDraft] = useState(gymNumber);
+  const [saved, setSaved] = useState(false);
+
+  // Sincronizar los borradores cuando cargan los ajustes guardados.
+  useEffect(() => {
+    setTemplateDraft(template);
+    setNumberDraft(gymNumber);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.settings]);
+
+  const preview = renderWhatsAppTemplate(templateDraft, {
+    nombre: "Alexia",
+    concepto: "Cuota mensual",
+    importe: "$550.00",
+    vencimiento: "vence el 4 dic 2026",
+    numeroGym: numberDraft || "441 100 0000",
+  });
+
+  return (
+    <RequireAuth>
+      <main className="mx-auto max-w-6xl px-4 py-6">
+        <h1 className="text-2xl font-bold">Ajustes</h1>
+        <p className="mt-1 text-sm text-gray-500">Solo el administrador puede cambiar estos ajustes.</p>
+
+        {!isAdmin ? (
+          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Solo el administrador puede cambiar los ajustes.
+          </p>
+        ) : (
+          <>
+            <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+              <h2 className="text-lg font-semibold">Mensaje de WhatsApp</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Este es el texto que se manda a los clientes al avisarles de un pago. Puedes usar estas variables:
+              </p>
+              <p className="mt-2 flex flex-wrap gap-1">
+                {VARS.map((v) => (
+                  <code key={v} className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
+                    {v}
+                  </code>
+                ))}
+              </p>
+              <textarea
+                value={templateDraft}
+                onChange={(e) => {
+                  setTemplateDraft(e.target.value);
+                  setSaved(false);
+                }}
+                rows={4}
+                className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              />
+              <div className="mt-3">
+                <h3 className="text-sm font-medium text-gray-700">Vista previa</h3>
+                <p className="mt-1 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">{preview}</p>
+              </div>
+            </section>
+
+            <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+              <h2 className="text-lg font-semibold">Número de WhatsApp del gimnasio</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Aparece dentro del mensaje donde pongas {"{numero_gym}"}. El mensaje se envía desde el WhatsApp del
+                teléfono que lo manda.
+              </p>
+              <input
+                type="tel"
+                value={numberDraft}
+                onChange={(e) => {
+                  setNumberDraft(e.target.value);
+                  setSaved(false);
+                }}
+                placeholder="441 100 0000"
+                className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm sm:w-64"
+              />
+            </section>
+
+            <div className="mt-6 flex items-center gap-3">
+              <button
+                onClick={() => {
+                  saveSetting("whatsapp_template", templateDraft);
+                  saveSetting("whatsapp_number", numberDraft);
+                  setSaved(true);
+                }}
+                className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white"
+              >
+                Guardar ajustes
+              </button>
+              {saved && <span className="text-sm text-green-700">Guardado ✓</span>}
+            </div>
+          </>
+        )}
+      </main>
+    </RequireAuth>
+  );
+}

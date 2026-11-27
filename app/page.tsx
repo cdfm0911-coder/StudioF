@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { RequireAuth } from "@/components/Login";
-import { useGym } from "@/lib/store";
-import { formatMXN, formatDateEs, paymentStatus, PAYMENT_STATUS_LABEL, paymentWhatsAppUrl, todayISO } from "@/lib/utils";
+import { getSetting, useGym } from "@/lib/store";
+import { DEFAULT_WHATSAPP_TEMPLATE, formatMXN, formatDateEs, paymentStatus, PAYMENT_STATUS_LABEL, paymentWhatsAppUrl, todayISO } from "@/lib/utils";
 
 export default function HoyPage() {
   const { data, loading, currentUser } = useGym();
@@ -59,7 +59,7 @@ export default function HoyPage() {
             <ul className="mt-3 space-y-2">
               {alerts.map(({ p, status }) => {
                 const member = data.members.find((m) => m.id === p.memberId);
-                const url = member ? paymentWhatsAppUrl(p, member.name, member.phone) : null;
+                const url = member ? paymentWhatsAppUrl(p, member.name, member.phone, getSetting(data.settings, "whatsapp_template", DEFAULT_WHATSAPP_TEMPLATE), getSetting(data.settings, "whatsapp_number", "")) : null;
                 return (
                   <li key={p.id} className="flex flex-wrap items-center gap-3 rounded-lg bg-white p-3 ring-1 ring-amber-100">
                     <span
