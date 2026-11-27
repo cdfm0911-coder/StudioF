@@ -419,9 +419,28 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
     const setRuleCoach = (ruleId: number, coach: string) => {
       const rule = rules.find((r) => r.id === ruleId);
       if (!rule) return;
-      const item = { ...rule, coach: coach.trim() || "—" };
+      const name = coach.trim() || "—";
+      const oldCoach = rule.coach;
+      const item = { ...rule, coach: name };
       update("classRules", (items) => items.map((x) => (x.id === ruleId ? item : x)));
       void syncRow("classRules", item as unknown as Record<string, unknown>);
+      // Las clases sueltas que coinciden con la serie (mismo título, hora y día de semana)
+      // y que aún tienen el entrenador anterior heredan el cambio, para que el calendario
+      // lo refleje ya mismo. Las sustituciones de un solo día (otro entrenador) no se tocan.
+      if (oldCoach !== name) {
+        const affected = data.classes.filter((c) => {
+          if (c.title !== rule.title || c.startTime !== rule.startTime) return false;
+          if (c.coach !== oldCoach) return false;
+          if (c.date < rule.startDate) return false;
+          const weekday = new Date(c.date + "T12:00:00").getDay();
+          return rule.days.includes(weekday);
+        });
+        if (affected.length > 0) {
+          const ids = new Set(affected.map((c) => c.id));
+          update("classes", (items) => items.map((x) => (ids.has(x.id) ? { ...x, coach: name } : x)));
+          for (const c of affected) void syncRow("classes", { ...c, coach: name } as unknown as Record<string, unknown>);
+        }
+      }
     };
     const deleteClass = (id: number) => {
       // Una sesión virtual es un día de una serie: eliminarla solo cancela ese día.
