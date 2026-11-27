@@ -32,6 +32,7 @@ export default function ClasesPage() {
   const [seriesDays, setSeriesDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [editingCoachId, setEditingCoachId] = useState<number | null>(null);
   const [coachDraft, setCoachDraft] = useState("");
+  const [coachScope, setCoachScope] = useState<"single" | "series">("single");
   const [editingRuleCoachId, setEditingRuleCoachId] = useState<number | null>(null);
   const [ruleCoachDraft, setRuleCoachDraft] = useState("");
 
@@ -138,7 +139,7 @@ export default function ClasesPage() {
                               {c.startTime} · {c.durationMin} min · {c.coach} · {bookings.length}/{c.capacity}
                             </span>
                             {isAdmin && editingCoachId !== c.id && (
-                              <button onClick={() => { setEditingCoachId(c.id); setCoachDraft(c.coach); }} className="text-sm text-blue-700 hover:underline">
+                              <button onClick={() => { setEditingCoachId(c.id); setCoachDraft(c.coach); setCoachScope("single"); }} className="text-sm text-blue-700 hover:underline">
                                 Cambiar entrenador
                               </button>
                             )}
@@ -151,9 +152,16 @@ export default function ClasesPage() {
                           {isAdmin && editingCoachId === c.id && (
                             <div className="mt-2 flex flex-wrap items-center gap-2">
                               <input value={coachDraft} onChange={(e) => setCoachDraft(e.target.value)} placeholder="Nombre del entrenador" className="rounded-lg border border-gray-300 px-2 py-1 text-sm" />
-                              <button onClick={() => { setClassCoach(c.id, coachDraft); setEditingCoachId(null); }} className="rounded-lg bg-gray-900 px-3 py-1 text-sm text-white">Guardar</button>
+                              {c.virtual && (
+                                <span className="flex items-center gap-1">
+                                  <button type="button" onClick={() => setCoachScope("single")} className={`rounded-full px-2 py-1 text-xs ${coachScope === "single" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-700"}`}>Solo esta clase</button>
+                                  <button type="button" onClick={() => setCoachScope("series")} className={`rounded-full px-2 py-1 text-xs ${coachScope === "series" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-700"}`}>Toda la serie</button>
+                                </span>
+                              )}
+                              <button onClick={() => { if (c.virtual && coachScope === "series" && c.ruleId != null) setRuleCoach(c.ruleId, coachDraft); else setClassCoach(c.id, coachDraft); setEditingCoachId(null); }} className="rounded-lg bg-gray-900 px-3 py-1 text-sm text-white">Guardar</button>
                               <button onClick={() => setEditingCoachId(null)} className="text-sm text-gray-500 underline">Cancelar</button>
-                              {c.virtual && <span className="text-xs text-gray-500">Solo cambia este día; la serie sigue igual.</span>}
+                              {c.virtual && coachScope === "single" && <span className="text-xs text-gray-500">Solo cambia este día; la serie sigue igual.</span>}
+                              {c.virtual && coachScope === "series" && <span className="text-xs text-gray-500">Cambia el entrenador de toda la serie.</span>}
                             </div>
                           )}
                           <div className="mt-2 flex flex-wrap gap-2">
