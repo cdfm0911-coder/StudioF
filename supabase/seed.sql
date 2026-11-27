@@ -6,7 +6,7 @@
 -- propia app (pantalla "Crea tu cuenta de administrador") y cambia los
 -- PIN de ejemplo que pongas. No guardes PIN reales en este archivo.
 
-insert into members (id, name, phone, email, plan, goal, start_date, status, notes) values
+insert into members (id, name, phone, email, plan, goal, start_date, status, notes) overriding system value values
   (1, 'Carlos', '4426771084', '', 'Mensual', 'Hyrox', '2026-11-25', 'activo', ''),
   (2, 'Camilla Barnes', '+44 7780 663864', '', 'Mensual', 'Spinning', '2026-11-25', 'activo', ''),
   (3, 'Karla Cruz', '4411087068', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona'),
@@ -33,7 +33,7 @@ insert into members (id, name, phone, email, plan, goal, start_date, status, not
   (24, 'Paty Cosino', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 16 · Modalidad: 1 persona')
 on conflict (id) do nothing;
 
-insert into classes (id, title, type, date, start_time, duration_min, coach, capacity, notes) values
+insert into classes (id, title, type, date, start_time, duration_min, coach, capacity, notes) overriding system value values
   (1, 'Hyrox', 'Sesión grupal', '2026-11-27', '18:00', 60, 'Jesus', 12, ''),
   (2, 'Hyrox', 'Sesión grupal', '2026-11-27', '19:00', 60, 'Jesus', 12, ''),
   (3, 'Hyrox', 'Sesión grupal', '2026-11-30', '18:00', 60, 'Jesus', 12, ''),
@@ -53,7 +53,7 @@ insert into classes (id, title, type, date, start_time, duration_min, coach, cap
   (17, 'Hyrox', 'Sesión grupal', '2026-12-04', '07:00', 60, 'Jesus', 12, '')
 on conflict (id) do nothing;
 
-insert into payments (id, member_id, concept, amount_cents, due_date, paid_date, method) values
+insert into payments (id, member_id, concept, amount_cents, due_date, paid_date, method) overriding system value values
   (1, 1, 'Cuota mensual', 55000, '2026-11-25', null, ''),
   (2, 2, 'Cuota mensual', 55000, '2026-11-25', null, ''),
   (3, 8, 'Cuota mensual', 55000, '2026-11-12', '2026-11-12', ''),
@@ -102,7 +102,7 @@ on conflict (id) do nothing;
 -- Valeria Flores (id 22) pagó noviembre pero sin día registrado: tampoco lleva
 -- pago en esta semilla; su estado está en sus notas.
 
-insert into exercises (id, name, category, muscle_group, equipment, description) values
+insert into exercises (id, name, category, muscle_group, equipment, description) overriding system value values
   (1, 'Sentadilla con barra', 'Fuerza', 'Piernas', 'Barra y rack', 'Sentadilla completa con barra en la espalda, bajando hasta romper el paralelo.'),
   (2, 'Peso muerto', 'Fuerza', 'Cadena posterior', 'Barra', 'Bisagra de cadera con barra desde el suelo, espalda neutra.'),
   (3, 'Press de banca', 'Fuerza', 'Pecho', 'Barra y banco', 'Press horizontal con barra, controlando la bajada.'),
