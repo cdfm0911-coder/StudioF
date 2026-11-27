@@ -7,6 +7,8 @@ import {
   AppUser,
   Assignment,
   Booking,
+  ClassRule,
+  ClassRuleSkip,
   Exercise,
   GymClass,
   GymData,
@@ -17,6 +19,7 @@ import {
   RoutineDay,
   RoutineExercise,
 } from "./types";
+import { todayISO } from "./utils";
 
 const STORAGE_KEY = "gestion-del-gym-v1";
 const SESSION_KEY = "gestion-del-gym-session";
@@ -44,6 +47,10 @@ interface GymContextValue {
   deleteMember: (id: number) => void;
   saveClass: (c: GymClass) => void;
   deleteClass: (id: number) => void;
+  saveClassRule: (r: ClassRule) => void;
+  deleteClassRule: (id: number) => void;
+  skipClassDay: (ruleId: number, date: string) => void;
+  restoreClassDay: (ruleId: number, date: string) => void;
   bookMember: (classId: number, memberId: number) => void;
   cancelBooking: (classId: number, memberId: number) => void;
   setAttendance: (bookingId: number, attended: boolean | null) => void;
@@ -107,12 +114,23 @@ function toDbRow(table: string, item: Record<string, unknown>): Record<string, u
   if (table === "routines") {
     out.days = (item as { days?: unknown }).days ?? [];
   }
+  if (table === "class_rules") {
+    // days es un array de enteros (0=domingo … 6=sábado); el bucle genérico lo omite.
+    out.days = (item as { days?: unknown }).days ?? [];
+  }
+  if (table === "classes") {
+    // Las sesiones virtuales nunca se sincronizan como filas reales.
+    delete out.virtual;
+    delete out.rule_id;
+  }
   return out;
 }
 
 const TABLES: (keyof GymData)[] = [
   "members",
   "classes",
+  "classRules",
+  "classRuleSkips",
   "bookings",
   "payments",
   "exercises",
@@ -124,6 +142,8 @@ const TABLES: (keyof GymData)[] = [
 const TABLE_NAME: Record<keyof GymData, string> = {
   members: "members",
   classes: "classes",
+  classRules: "class_rules",
+  classRuleSkips: "class_rule_skips",
   bookings: "bookings",
   payments: "payments",
   exercises: "exercises",
@@ -132,6 +152,49 @@ const TABLE_NAME: Record<keyof GymData, string> = {
   progress: "progress",
   users: "app_users",
 };
+
+// --- Horarios semanales (clases en serie): las reglas generan sesiones virtuales ---
+const EXPAND_WEEKS = 12;
+
+function toISODateLocal(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function expandClasses(classes: GymClass[], rules: ClassRule[], skips: ClassRuleSkip[]): GymClass[] {
+  const out = [...classes];
+  const today = todayISO();
+  const start = new Date(today + "T12:00:00");
+  const skipSet = new Set(skips.map((s) => `${s.ruleId}|${s.date}`));
+  const realKeys = new Set(classes.map((c) => `${c.date}|${c.startTime}|${c.title}`));
+  let seq = 0;
+  for (const rule of rules) {
+    if (!rule.active) continue;
+    for (let i = 0; i < EXPAND_WEEKS * 7; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const iso = toISODateLocal(d);
+      if (iso < rule.startDate) continue;
+      if (!rule.days.includes(d.getDay())) continue;
+      if (skipSet.has(`${rule.id}|${iso}`)) continue;
+      if (realKeys.has(`${iso}|${rule.startTime}|${rule.title}`)) continue;
+      out.push({
+        id: -(rule.id * 1000000 + seq),
+        title: rule.title,
+        type: rule.type,
+        date: iso,
+        startTime: rule.startTime,
+        durationMin: rule.durationMin,
+        coach: rule.coach,
+        capacity: rule.capacity,
+        notes: rule.notes,
+        virtual: true,
+        ruleId: rule.id,
+      });
+      seq++;
+    }
+  }
+  return out.sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
+}
 
 export function GymProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<GymData>(() => clone(SEED_DATA));
@@ -159,7 +222,12 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
           const raw = localStorage.getItem(STORAGE_KEY);
           if (raw) {
             const parsed = JSON.parse(raw) as GymData;
-            if (parsed && Array.isArray(parsed.members)) setData(parsed);
+            if (parsed && Array.isArray(parsed.members)) {
+              // Datos guardados antes de los horarios semanales: normalizar.
+              if (!Array.isArray(parsed.classRules)) parsed.classRules = [];
+              if (!Array.isArray(parsed.classRuleSkips)) parsed.classRuleSkips = [];
+              setData(parsed);
+            }
           }
         } catch {
           /* semilla */
@@ -170,9 +238,16 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       try {
         const loaded: Partial<GymData> = {};
         for (const key of TABLES) {
-          const { data: rows, error } = await sb.from(TABLE_NAME[key]).select("*").order("id");
-          if (error) throw error;
-          loaded[key] = (rows || []).map((r) => fromDbRow(TABLE_NAME[key], r as Record<string, unknown>)) as never;
+          try {
+            const { data: rows, error } = await sb.from(TABLE_NAME[key]).select("*").order("id");
+            if (error) throw error;
+            loaded[key] = (rows || []).map((r) => fromDbRow(TABLE_NAME[key], r as Record<string, unknown>)) as never;
+          } catch (tableError) {
+            // Una tabla que aún no existe (p. ej. class_rules antes de correr la migración)
+            // no debe tumbar toda la carga: se sigue con las demás.
+            console.warn(`No se pudo cargar ${TABLE_NAME[key]}, se sigue sin esa tabla:`, tableError);
+            loaded[key] = [] as never;
+          }
         }
         // Si Supabase está vacío y es la primera vez, sembrar desde los datos iniciales
         const empty = (loaded.members as Member[] | undefined)?.length === 0;
@@ -232,6 +307,9 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
   }
 
   const value: GymContextValue = useMemo(() => {
+    const rules = data.classRules ?? [];
+    const ruleSkips = data.classRuleSkips ?? [];
+    const expandedClasses = expandClasses(data.classes, rules, ruleSkips);
     const login = (username: string, pin: string): string | null => {
       const user = data.users.find((u) => u.username.toLowerCase() === username.trim().toLowerCase());
       if (!user || user.pin !== pin) return "Usuario o PIN incorrectos";
@@ -286,14 +364,61 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       update("classes", (items) => (c.id ? items.map((x) => (x.id === c.id ? item : x)) : [...items, item]));
       void syncRow("classes", item as unknown as Record<string, unknown>);
     };
+    const saveClassRule = (r: ClassRule) => {
+      const item = r.id ? r : { ...r, id: nextId(rules) };
+      update("classRules", (items) => (r.id ? items.map((x) => (x.id === r.id ? item : x)) : [...items, item]));
+      void syncRow("classRules", item as unknown as Record<string, unknown>);
+    };
+    const deleteClassRule = (id: number) => {
+      const skips = ruleSkips.filter((s) => s.ruleId === id);
+      update("classRules", (items) => items.filter((x) => x.id !== id));
+      update("classRuleSkips", (items) => items.filter((x) => x.ruleId !== id));
+      void syncRow("classRules", { id } as Record<string, unknown>, true);
+      for (const s of skips) void syncRow("classRuleSkips", s as unknown as Record<string, unknown>, true);
+    };
+    const skipClassDay = (ruleId: number, date: string) => {
+      if (ruleSkips.some((s) => s.ruleId === ruleId && s.date === date)) return;
+      const skip: ClassRuleSkip = { id: nextId(ruleSkips), ruleId, date };
+      update("classRuleSkips", (items) => [...items, skip]);
+      void syncRow("classRuleSkips", skip as unknown as Record<string, unknown>);
+    };
+    const restoreClassDay = (ruleId: number, date: string) => {
+      const skip = ruleSkips.find((s) => s.ruleId === ruleId && s.date === date);
+      update("classRuleSkips", (items) => items.filter((x) => !(x.ruleId === ruleId && x.date === date)));
+      if (skip) void syncRow("classRuleSkips", skip as unknown as Record<string, unknown>, true);
+    };
     const deleteClass = (id: number) => {
+      // Una sesión virtual es un día de una serie: eliminarla solo cancela ese día.
+      const virtual = expandedClasses.find((c) => c.id === id && c.virtual);
+      if (virtual && virtual.ruleId != null) {
+        skipClassDay(virtual.ruleId, virtual.date);
+        return;
+      }
       update("classes", (items) => items.filter((x) => x.id !== id));
       update("bookings", (items) => items.filter((x) => x.classId !== id));
       void syncRow("classes", { id } as Record<string, unknown>, true);
     };
     const bookMember = (classId: number, memberId: number) => {
-      const cls = data.classes.find((c) => c.id === classId);
+      let cls = expandedClasses.find((c) => c.id === classId);
       if (!cls) return;
+      // Reservar una sesión virtual la convierte en clase real (se guarda en la base).
+      if (cls.virtual) {
+        const real: GymClass = {
+          id: nextId(data.classes),
+          title: cls.title,
+          type: cls.type,
+          date: cls.date,
+          startTime: cls.startTime,
+          durationMin: cls.durationMin,
+          coach: cls.coach,
+          capacity: cls.capacity,
+          notes: cls.notes,
+        };
+        update("classes", (items) => [...items, real]);
+        void syncRow("classes", real as unknown as Record<string, unknown>);
+        classId = real.id;
+        cls = real;
+      }
       const booked = data.bookings.filter((b) => b.classId === classId).length;
       if (booked >= cls.capacity) return;
       if (data.bookings.some((b) => b.classId === classId && b.memberId === memberId)) return;
@@ -419,7 +544,7 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
     };
 
     return {
-      data,
+      data: { ...data, classes: expandedClasses, classRules: rules, classRuleSkips: ruleSkips },
       loading,
       mode,
       currentUser,
@@ -433,6 +558,10 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       deleteMember,
       saveClass,
       deleteClass,
+      saveClassRule,
+      deleteClassRule,
+      skipClassDay,
+      restoreClassDay,
       bookMember,
       cancelBooking,
       setAttendance,

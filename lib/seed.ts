@@ -76,6 +76,12 @@ export const SEED_DATA: GymData = {
     { id: 16, title: "Hyrox", type: "Sesión grupal", date: "2026-12-03", startTime: "18:00", durationMin: 60, coach: "Jesus", capacity: 12, notes: "" },
     { id: 17, title: "Hyrox", type: "Sesión grupal", date: "2026-12-04", startTime: "07:00", durationMin: 60, coach: "Jesus", capacity: 12, notes: "" },
   ],
+  classRules: [
+    { id: 1, title: "Hyrox", type: "Sesión grupal", days: [1, 2, 3, 4, 5], startDate: "2026-11-27", startTime: "07:00", durationMin: 60, coach: "Jesus", capacity: 12, notes: "", active: true },
+    { id: 2, title: "Hyrox", type: "Sesión grupal", days: [1, 2, 3, 4, 5], startDate: "2026-11-27", startTime: "18:00", durationMin: 60, coach: "Jesus", capacity: 12, notes: "", active: true },
+    { id: 3, title: "Hyrox", type: "Sesión grupal", days: [1, 2, 3, 4, 5], startDate: "2026-11-27", startTime: "19:00", durationMin: 60, coach: "Jesus", capacity: 12, notes: "", active: true },
+  ],
+  classRuleSkips: [],
   bookings: [],
   payments: [
     { id: 1, memberId: 1, concept: "Cuota mensual", amountCents: 55000, dueDate: "2026-11-25", paidDate: null, method: "" },

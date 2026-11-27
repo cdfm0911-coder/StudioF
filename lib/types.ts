@@ -22,6 +22,32 @@ export interface GymClass {
   coach: string;
   capacity: number;
   notes: string;
+  /** Sesión generada por un horario semanal (no es una fila real en la tabla). */
+  virtual?: boolean;
+  /** Regla semanal que genera esta sesión, si es virtual. */
+  ruleId?: number | null;
+}
+
+/** Horario semanal: una clase en serie que se repite cada semana. */
+export interface ClassRule {
+  id: number;
+  title: string;
+  type: string;
+  days: number[]; // 0=domingo … 6=sábado
+  startDate: string; // YYYY-MM-DD, primer día de la serie
+  startTime: string; // HH:MM
+  durationMin: number;
+  coach: string;
+  capacity: number;
+  notes: string;
+  active: boolean;
+}
+
+/** Un día cancelado de una serie (no se genera esa sesión). */
+export interface ClassRuleSkip {
+  id: number;
+  ruleId: number;
+  date: string; // YYYY-MM-DD
 }
 
 export interface Booking {
@@ -116,4 +142,6 @@ export interface GymData {
   assignments: Assignment[];
   progress: ProgressEntry[];
   users: AppUser[];
+  classRules: ClassRule[];
+  classRuleSkips: ClassRuleSkip[];
 }

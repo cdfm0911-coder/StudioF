@@ -4,7 +4,9 @@ import { useState } from "react";
 import { RequireAuth } from "@/components/Login";
 import { useGym } from "@/lib/store";
 import { GymClass } from "@/lib/types";
-import { todayISO } from "@/lib/utils";
+import { formatDateEs, todayISO } from "@/lib/utils";
+
+const DAY_NAMES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 function weekDates(): string[] {
   const out: string[] = [];
@@ -19,13 +21,15 @@ function weekDates(): string[] {
 }
 
 export default function ClasesPage() {
-  const { data, saveClass, deleteClass, bookMember, cancelBooking, setAttendance, currentUser } = useGym();
+  const { data, saveClass, deleteClass, saveClassRule, deleteClassRule, restoreClassDay, bookMember, cancelBooking, setAttendance, currentUser } = useGym();
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(todayISO());
   const [startTime, setStartTime] = useState("18:00");
   const [coach, setCoach] = useState("");
   const [capacity, setCapacity] = useState(12);
   const [bookMemberId, setBookMemberId] = useState("");
+  const [isSeries, setIsSeries] = useState(false);
+  const [seriesDays, setSeriesDays] = useState<number[]>([1, 2, 3, 4, 5]);
 
   const days = weekDates();
   const isAdmin = currentUser?.role === "administrador";
@@ -41,17 +45,34 @@ export default function ClasesPage() {
           onSubmit={(e) => {
             e.preventDefault();
             if (!title.trim()) return;
-            saveClass({
-              id: 0,
-              title: title.trim(),
-              type: "Sesión grupal",
-              date,
-              startTime,
-              durationMin: 60,
-              coach: coach.trim() || "—",
-              capacity,
-              notes: "",
-            } as GymClass);
+            if (isSeries) {
+              if (seriesDays.length === 0) return;
+              saveClassRule({
+                id: 0,
+                title: title.trim(),
+                type: "Sesión grupal",
+                days: [...seriesDays].sort((a, b) => a - b),
+                startDate: date,
+                startTime,
+                durationMin: 60,
+                coach: coach.trim() || "—",
+                capacity,
+                notes: "",
+                active: true,
+              });
+            } else {
+              saveClass({
+                id: 0,
+                title: title.trim(),
+                type: "Sesión grupal",
+                date,
+                startTime,
+                durationMin: 60,
+                coach: coach.trim() || "—",
+                capacity,
+                notes: "",
+              } as GymClass);
+            }
             setTitle("");
           }}
         >
@@ -60,7 +81,32 @@ export default function ClasesPage() {
           <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" required />
           <input value={coach} onChange={(e) => setCoach(e.target.value)} placeholder="Entrenador" className="rounded-lg border border-gray-300 px-3 py-2" />
           <input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="rounded-lg border border-gray-300 px-3 py-2" aria-label="Capacidad" />
-          <button className="rounded-lg bg-gray-900 px-4 py-2 font-medium text-white">Crear clase</button>
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-6">
+            <span className="text-sm font-medium">Repetir:</span>
+            <button type="button" onClick={() => setIsSeries(false)} className={`rounded-full px-3 py-1 text-sm ${!isSeries ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-700"}`}>Solo este día</button>
+            <button type="button" onClick={() => setIsSeries(true)} className={`rounded-full px-3 py-1 text-sm ${isSeries ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-700"}`}>En serie · cada semana</button>
+            {isSeries && (
+              <>
+                <span className="flex flex-wrap items-center gap-1">
+                  {DAY_NAMES.map((name, d) => (
+                    <label key={d} className={`cursor-pointer rounded-full px-2 py-1 text-xs ${seriesDays.includes(d) ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700"}`}>
+                      <input
+                        type="checkbox"
+                        checked={seriesDays.includes(d)}
+                        onChange={() =>
+                          setSeriesDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]))
+                        }
+                        className="hidden"
+                      />
+                      {name}
+                    </label>
+                  ))}
+                </span>
+                <span className="text-xs text-gray-500">Empieza el día elegido y se repite cada semana.</span>
+              </>
+            )}
+          </div>
+          <button className="rounded-lg bg-gray-900 px-4 py-2 font-medium text-white">{isSeries ? "Crear serie" : "Crear clase"}</button>
         </form>
 
         <div className="mt-6 space-y-4">
@@ -81,12 +127,15 @@ export default function ClasesPage() {
                         <li key={c.id} className="rounded-lg border border-gray-100 p-3">
                           <div className="flex flex-wrap items-center gap-3">
                             <span className="font-medium">{c.title}</span>
+                            {c.virtual && (
+                              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">Semanal</span>
+                            )}
                             <span className="text-sm text-gray-600">
                               {c.startTime} · {c.durationMin} min · {c.coach} · {bookings.length}/{c.capacity}
                             </span>
                             {isAdmin && (
                               <button onClick={() => deleteClass(c.id)} className="ml-auto text-sm text-red-600 hover:underline">
-                                Eliminar
+                                {c.virtual ? "Cancelar este día" : "Eliminar"}
                               </button>
                             )}
                           </div>
@@ -135,6 +184,53 @@ export default function ClasesPage() {
             );
           })}
         </div>
+
+        <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+          <h2 className="text-lg font-semibold">Horarios semanales</h2>
+          <p className="mt-1 text-sm text-gray-500">Clases en serie: se repiten cada semana hasta que se elimine la serie.</p>
+          {data.classRules.filter((r) => r.active).length === 0 ? (
+            <p className="mt-2 text-sm text-gray-500">No hay horarios semanales.</p>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {data.classRules
+                .filter((r) => r.active)
+                .map((rule) => {
+                  const skips = data.classRuleSkips.filter((s) => s.ruleId === rule.id);
+                  return (
+                    <li key={rule.id} className="rounded-lg border border-gray-100 p-3">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="font-medium">{rule.title}</span>
+                        <span className="text-sm text-gray-600">
+                          {rule.days.map((d) => DAY_NAMES[d]).join(" · ")} · {rule.startTime} · {rule.durationMin} min ·{" "}
+                          {rule.coach} · {rule.capacity} plazas · desde {formatDateEs(rule.startDate)}
+                        </span>
+                        {isAdmin && (
+                          <button onClick={() => deleteClassRule(rule.id)} className="ml-auto text-sm text-red-600 hover:underline">
+                            Eliminar serie
+                          </button>
+                        )}
+                      </div>
+                      {skips.length > 0 && (
+                        <p className="mt-2 text-sm text-gray-600">
+                          Días cancelados:{" "}
+                          {skips.map((s) => (
+                            <span key={s.id} className="mr-2 inline-flex items-center gap-1">
+                              {formatDateEs(s.date)}
+                              {isAdmin && (
+                                <button onClick={() => restoreClassDay(rule.id, s.date)} className="text-blue-700 underline">
+                                  Restaurar
+                                </button>
+                              )}
+                            </span>
+                          ))}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+            </ul>
+          )}
+        </section>
       </main>
     </RequireAuth>
   );

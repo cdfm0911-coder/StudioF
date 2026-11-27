@@ -127,9 +127,20 @@ insert into exercises (id, name, category, muscle_group, equipment, description)
   (22, 'Movilidad de cadera', 'Movilidad', 'Cadera', 'Peso corporal', 'Rutina de movilidad y apertura de cadera.')
 on conflict (id) do nothing;
 
+-- Horarios semanales (clases en serie): reglas Hyrox lunes a viernes.
+-- Las 17 clases sueltas coinciden con estas reglas y no se duplican: la app las fusiona.
+insert into class_rules (id, title, type, days, start_date, start_time, duration_min, capacity, coach, notes, active)
+overriding system value values
+  (1, 'Hyrox', 'Sesión grupal', array[1,2,3,4,5], '2026-11-27', '07:00', 60, 12, 'Jesus', '', true),
+  (2, 'Hyrox', 'Sesión grupal', array[1,2,3,4,5], '2026-11-27', '18:00', 60, 12, 'Jesus', '', true),
+  (3, 'Hyrox', 'Sesión grupal', array[1,2,3,4,5], '2026-11-27', '19:00', 60, 12, 'Jesus', '', true)
+on conflict (id) do nothing;
+
 -- Rutinas, asignaciones, reservas y progreso: 0 en la app original, se empieza vacío.
 -- Secuencias al día tras insertar IDs fijos:
 select setval(pg_get_serial_sequence('members', 'id'), (select max(id) from members));
 select setval(pg_get_serial_sequence('classes', 'id'), (select max(id) from classes));
 select setval(pg_get_serial_sequence('payments', 'id'), (select max(id) from payments));
 select setval(pg_get_serial_sequence('exercises', 'id'), (select max(id) from exercises));
+select setval(pg_get_serial_sequence('class_rules', 'id'), coalesce((select max(id) from class_rules), 1));
+select setval(pg_get_serial_sequence('class_rule_skips', 'id'), coalesce((select max(id) from class_rule_skips), 1));
