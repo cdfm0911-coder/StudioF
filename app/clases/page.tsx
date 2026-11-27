@@ -21,7 +21,7 @@ function weekDates(): string[] {
 }
 
 export default function ClasesPage() {
-  const { data, saveClass, deleteClass, saveClassRule, deleteClassRule, restoreClassDay, bookMember, cancelBooking, setAttendance, currentUser } = useGym();
+  const { data, saveClass, deleteClass, saveClassRule, deleteClassRule, restoreClassDay, setClassCoach, setRuleCoach, bookMember, cancelBooking, setAttendance, currentUser } = useGym();
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(todayISO());
   const [startTime, setStartTime] = useState("18:00");
@@ -30,6 +30,10 @@ export default function ClasesPage() {
   const [bookMemberId, setBookMemberId] = useState("");
   const [isSeries, setIsSeries] = useState(false);
   const [seriesDays, setSeriesDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [editingCoachId, setEditingCoachId] = useState<number | null>(null);
+  const [coachDraft, setCoachDraft] = useState("");
+  const [editingRuleCoachId, setEditingRuleCoachId] = useState<number | null>(null);
+  const [ruleCoachDraft, setRuleCoachDraft] = useState("");
 
   const days = weekDates();
   const isAdmin = currentUser?.role === "administrador";
@@ -133,12 +137,25 @@ export default function ClasesPage() {
                             <span className="text-sm text-gray-600">
                               {c.startTime} · {c.durationMin} min · {c.coach} · {bookings.length}/{c.capacity}
                             </span>
+                            {isAdmin && editingCoachId !== c.id && (
+                              <button onClick={() => { setEditingCoachId(c.id); setCoachDraft(c.coach); }} className="text-sm text-blue-700 hover:underline">
+                                Cambiar entrenador
+                              </button>
+                            )}
                             {isAdmin && (
                               <button onClick={() => deleteClass(c.id)} className="ml-auto text-sm text-red-600 hover:underline">
                                 {c.virtual ? "Cancelar este día" : "Eliminar"}
                               </button>
                             )}
                           </div>
+                          {isAdmin && editingCoachId === c.id && (
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <input value={coachDraft} onChange={(e) => setCoachDraft(e.target.value)} placeholder="Nombre del entrenador" className="rounded-lg border border-gray-300 px-2 py-1 text-sm" />
+                              <button onClick={() => { setClassCoach(c.id, coachDraft); setEditingCoachId(null); }} className="rounded-lg bg-gray-900 px-3 py-1 text-sm text-white">Guardar</button>
+                              <button onClick={() => setEditingCoachId(null)} className="text-sm text-gray-500 underline">Cancelar</button>
+                              {c.virtual && <span className="text-xs text-gray-500">Solo cambia este día; la serie sigue igual.</span>}
+                            </div>
+                          )}
                           <div className="mt-2 flex flex-wrap gap-2">
                             <select
                               value={bookMemberId}
@@ -146,7 +163,7 @@ export default function ClasesPage() {
                               className="rounded-lg border border-gray-300 px-2 py-1 text-sm"
                             >
                               <option value="">Reservar cliente…</option>
-                              {data.members.map((m) => (
+                              {data.members.filter((m) => m.status === "activo").map((m) => (
                                 <option key={m.id} value={m.id}>{m.name}</option>
                               ))}
                             </select>
@@ -204,12 +221,25 @@ export default function ClasesPage() {
                           {rule.days.map((d) => DAY_NAMES[d]).join(" · ")} · {rule.startTime} · {rule.durationMin} min ·{" "}
                           {rule.coach} · {rule.capacity} plazas · desde {formatDateEs(rule.startDate)}
                         </span>
+                        {isAdmin && editingRuleCoachId !== rule.id && (
+                          <button onClick={() => { setEditingRuleCoachId(rule.id); setRuleCoachDraft(rule.coach); }} className="text-sm text-blue-700 hover:underline">
+                            Cambiar entrenador
+                          </button>
+                        )}
                         {isAdmin && (
                           <button onClick={() => deleteClassRule(rule.id)} className="ml-auto text-sm text-red-600 hover:underline">
                             Eliminar serie
                           </button>
                         )}
                       </div>
+                      {isAdmin && editingRuleCoachId === rule.id && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <input value={ruleCoachDraft} onChange={(e) => setRuleCoachDraft(e.target.value)} placeholder="Nombre del entrenador" className="rounded-lg border border-gray-300 px-2 py-1 text-sm" />
+                          <button onClick={() => { setRuleCoach(rule.id, ruleCoachDraft); setEditingRuleCoachId(null); }} className="rounded-lg bg-gray-900 px-3 py-1 text-sm text-white">Guardar</button>
+                          <button onClick={() => setEditingRuleCoachId(null)} className="text-sm text-gray-500 underline">Cancelar</button>
+                          <span className="text-xs text-gray-500">Cambia el entrenador de toda la serie.</span>
+                        </div>
+                      )}
                       {skips.length > 0 && (
                         <p className="mt-2 text-sm text-gray-600">
                           Días cancelados:{" "}

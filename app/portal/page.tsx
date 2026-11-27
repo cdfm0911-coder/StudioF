@@ -80,6 +80,11 @@ export default function PortalPage() {
         <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
           <h2 className="text-lg font-semibold">Calendario de clases</h2>
           <p className="mt-1 text-sm text-gray-500">Reserva tu plaza en la tabla: cada columna es un día de la semana.</p>
+          {member && member.status !== "activo" && (
+            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Tu cuenta está dada de baja. Si quieres volver a entrenar, habla con el gimnasio para reactivarla.
+            </p>
+          )}
           {upcoming.length === 0 ? (
             <p className="mt-2 text-sm text-gray-600">No hay clases próximas.</p>
           ) : (
@@ -142,7 +147,7 @@ export default function PortalPage() {
                                       Cancelar mi plaza
                                     </button>
                                   ) : (
-                                    member && (
+                                    member && member.status === "activo" && (
                                       <button
                                         onClick={() => bookMember(c.id, member.id)}
                                         disabled={count >= c.capacity}

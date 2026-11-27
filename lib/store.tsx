@@ -51,6 +51,8 @@ interface GymContextValue {
   deleteClassRule: (id: number) => void;
   skipClassDay: (ruleId: number, date: string) => void;
   restoreClassDay: (ruleId: number, date: string) => void;
+  setClassCoach: (classId: number, coach: string) => void;
+  setRuleCoach: (ruleId: number, coach: string) => void;
   bookMember: (classId: number, memberId: number) => void;
   cancelBooking: (classId: number, memberId: number) => void;
   setAttendance: (bookingId: number, attended: boolean | null) => void;
@@ -387,6 +389,40 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       update("classRuleSkips", (items) => items.filter((x) => !(x.ruleId === ruleId && x.date === date)));
       if (skip) void syncRow("classRuleSkips", skip as unknown as Record<string, unknown>, true);
     };
+    // Cambiar el entrenador de una sesión: si es de una serie, solo cambia ese día
+    // (la sesión se convierte en clase real con el nuevo entrenador).
+    const setClassCoach = (classId: number, coach: string) => {
+      const cls = expandedClasses.find((c) => c.id === classId);
+      if (!cls) return;
+      const name = coach.trim() || "—";
+      if (cls.virtual) {
+        const real: GymClass = {
+          id: nextId(data.classes),
+          title: cls.title,
+          type: cls.type,
+          date: cls.date,
+          startTime: cls.startTime,
+          durationMin: cls.durationMin,
+          coach: name,
+          capacity: cls.capacity,
+          notes: cls.notes,
+        };
+        update("classes", (items) => [...items, real]);
+        void syncRow("classes", real as unknown as Record<string, unknown>);
+      } else {
+        const item = { ...cls, coach: name };
+        update("classes", (items) => items.map((x) => (x.id === classId ? item : x)));
+        void syncRow("classes", item as unknown as Record<string, unknown>);
+      }
+    };
+    // Cambiar el entrenador de toda una serie (horario semanal).
+    const setRuleCoach = (ruleId: number, coach: string) => {
+      const rule = rules.find((r) => r.id === ruleId);
+      if (!rule) return;
+      const item = { ...rule, coach: coach.trim() || "—" };
+      update("classRules", (items) => items.map((x) => (x.id === ruleId ? item : x)));
+      void syncRow("classRules", item as unknown as Record<string, unknown>);
+    };
     const deleteClass = (id: number) => {
       // Una sesión virtual es un día de una serie: eliminarla solo cancela ese día.
       const virtual = expandedClasses.find((c) => c.id === id && c.virtual);
@@ -399,6 +435,9 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       void syncRow("classes", { id } as Record<string, unknown>, true);
     };
     const bookMember = (classId: number, memberId: number) => {
+      // Un cliente dado de baja no puede reservar.
+      const m = data.members.find((x) => x.id === memberId);
+      if (m && m.status !== "activo") return;
       let cls = expandedClasses.find((c) => c.id === classId);
       if (!cls) return;
       // Reservar una sesión virtual la convierte en clase real (se guarda en la base).
@@ -562,6 +601,8 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       deleteClassRule,
       skipClassDay,
       restoreClassDay,
+      setClassCoach,
+      setRuleCoach,
       bookMember,
       cancelBooking,
       setAttendance,

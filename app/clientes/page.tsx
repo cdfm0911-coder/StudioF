@@ -57,12 +57,17 @@ export default function ClientesPage() {
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <div className="space-y-2">
-            {data.members.map((m) => (
-              <button key={m.id} onClick={() => setSelectedId(m.id)} className={`w-full rounded-xl border p-3 text-left ${selectedId === m.id ? "border-gray-900 bg-white" : "border-gray-200 bg-white"}`}>
-                <span className="font-medium">{m.name}</span>
-                <span className="block text-xs text-gray-500">{m.plan} · {m.goal} · {m.status}</span>
-              </button>
-            ))}
+            {[...data.members]
+              .sort((a, b) => (a.status === b.status ? a.name.localeCompare(b.name) : a.status === "activo" ? -1 : 1))
+              .map((m) => (
+                <button key={m.id} onClick={() => setSelectedId(m.id)} className={`w-full rounded-xl border p-3 text-left ${selectedId === m.id ? "border-gray-900 bg-white" : "border-gray-200 bg-white"} ${m.status !== "activo" ? "opacity-60" : ""}`}>
+                  <span className="font-medium">{m.name}</span>
+                  {m.status !== "activo" && (
+                    <span className="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-600">Dado de baja</span>
+                  )}
+                  <span className="block text-xs text-gray-500">{m.plan} · {m.goal} · {m.status}</span>
+                </button>
+              ))}
           </div>
           <div className="md:col-span-2">
             {!selected ? (
@@ -72,12 +77,25 @@ export default function ClientesPage() {
                 <section className="rounded-xl border border-gray-200 bg-white p-4">
                   <div className="flex items-start gap-3">
                     <div>
-                      <h2 className="text-lg font-semibold">{selected.name}</h2>
+                      <h2 className="text-lg font-semibold">
+                        {selected.name}
+                        {selected.status !== "activo" && (
+                          <span className="ml-2 rounded-full bg-gray-200 px-2 py-0.5 align-middle text-xs font-semibold text-gray-600">Dado de baja</span>
+                        )}
+                      </h2>
                       <p className="text-sm text-gray-600">Tel. {selected.phone || "—"} · Plan {selected.plan} · Objetivo {selected.goal}</p>
                       <p className="text-sm text-gray-600">Desde {formatDateEs(selected.startDate)} · {selected.status}</p>
                     </div>
                     {isAdmin && (
-                      <button onClick={() => { deleteMember(selected.id); setSelectedId(null); }} className="ml-auto text-sm text-red-600 hover:underline">Eliminar cliente</button>
+                      <div className="ml-auto flex flex-col items-end gap-1">
+                        <button
+                          onClick={() => saveMember({ ...selected, status: selected.status === "activo" ? "inactivo" : "activo" })}
+                          className="text-sm text-amber-700 hover:underline"
+                        >
+                          {selected.status === "activo" ? "Dar de baja" : "Reactivar"}
+                        </button>
+                        <button onClick={() => { deleteMember(selected.id); setSelectedId(null); }} className="text-sm text-red-600 hover:underline">Eliminar cliente</button>
+                      </div>
                     )}
                   </div>
                   <p className="mt-2 text-sm"><strong>Rutina actual:</strong> {routine ? routine.name : "Sin rutina asignada"}</p>
