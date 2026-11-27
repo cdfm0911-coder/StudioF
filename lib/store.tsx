@@ -198,6 +198,14 @@ function expandClasses(classes: GymClass[], rules: ClassRule[], skips: ClassRule
   return out.sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
 }
 
+// Marca en notas cuando el entrenador de una clase se cambia a mano un día concreto:
+// esos días mandan sobre la serie y un cambio de entrenador de la serie no los toca.
+const MANUAL_COACH_MARK = "Entrenador manual";
+function markManualCoach(notes: string): string {
+  if ((notes || "").includes(MANUAL_COACH_MARK)) return notes;
+  return notes ? `${notes} · ${MANUAL_COACH_MARK}` : MANUAL_COACH_MARK;
+}
+
 export function GymProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<GymData>(() => clone(SEED_DATA));
   const [loading, setLoading] = useState(true);
@@ -391,6 +399,7 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
     };
     // Cambiar el entrenador de una sesión: si es de una serie, solo cambia ese día
     // (la sesión se convierte en clase real con el nuevo entrenador).
+    // El cambio manual queda marcado: un cambio de la serie no lo sobrescribe.
     const setClassCoach = (classId: number, coach: string) => {
       const cls = expandedClasses.find((c) => c.id === classId);
       if (!cls) return;
@@ -405,12 +414,12 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
           durationMin: cls.durationMin,
           coach: name,
           capacity: cls.capacity,
-          notes: cls.notes,
+          notes: markManualCoach(cls.notes),
         };
         update("classes", (items) => [...items, real]);
         void syncRow("classes", real as unknown as Record<string, unknown>);
       } else {
-        const item = { ...cls, coach: name };
+        const item = { ...cls, coach: name, notes: markManualCoach(cls.notes) };
         update("classes", (items) => items.map((x) => (x.id === classId ? item : x)));
         void syncRow("classes", item as unknown as Record<string, unknown>);
       }
@@ -420,26 +429,24 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       const rule = rules.find((r) => r.id === ruleId);
       if (!rule) return;
       const name = coach.trim() || "—";
-      const oldCoach = rule.coach;
       const item = { ...rule, coach: name };
       update("classRules", (items) => items.map((x) => (x.id === ruleId ? item : x)));
       void syncRow("classRules", item as unknown as Record<string, unknown>);
-      // Las clases sueltas que coinciden con la serie (mismo título, hora y día de semana)
-      // y que aún tienen el entrenador anterior heredan el cambio, para que el calendario
-      // lo refleje ya mismo. Las sustituciones de un solo día (otro entrenador) no se tocan.
-      if (oldCoach !== name) {
-        const affected = data.classes.filter((c) => {
-          if (c.title !== rule.title || c.startTime !== rule.startTime) return false;
-          if (c.coach !== oldCoach) return false;
-          if (c.date < rule.startDate) return false;
-          const weekday = new Date(c.date + "T12:00:00").getDay();
-          return rule.days.includes(weekday);
-        });
-        if (affected.length > 0) {
-          const ids = new Set(affected.map((c) => c.id));
-          update("classes", (items) => items.map((x) => (ids.has(x.id) ? { ...x, coach: name } : x)));
-          for (const c of affected) void syncRow("classes", { ...c, coach: name } as unknown as Record<string, unknown>);
-        }
+      // Sincronizar las clases sueltas que coinciden con la serie para que el cambio
+      // se vea ya en el calendario (también repara cambios de antes del arreglo).
+      // No se tocan los días cuyo entrenador se cambió manualmente: esos mandan.
+      const affected = data.classes.filter((c) => {
+        if (c.title !== rule.title || c.startTime !== rule.startTime) return false;
+        if (c.date < rule.startDate) return false;
+        const weekday = new Date(c.date + "T12:00:00").getDay();
+        if (!rule.days.includes(weekday)) return false;
+        if ((c.notes || "").includes(MANUAL_COACH_MARK)) return false;
+        return c.coach !== name;
+      });
+      if (affected.length > 0) {
+        const ids = new Set(affected.map((c) => c.id));
+        update("classes", (items) => items.map((x) => (ids.has(x.id) ? { ...x, coach: name } : x)));
+        for (const c of affected) void syncRow("classes", { ...c, coach: name } as unknown as Record<string, unknown>);
       }
     };
     const deleteClass = (id: number) => {
