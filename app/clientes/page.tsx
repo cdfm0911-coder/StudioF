@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RequireAuth } from "@/components/Login";
 import { useGym } from "@/lib/store";
 import { Member, ProgressEntry } from "@/lib/types";
@@ -14,6 +14,10 @@ export default function ClientesPage() {
   const [goal, setGoal] = useState("Hyrox");
   const [weight, setWeight] = useState("");
   const [note, setNote] = useState("");
+  // Datos de cobro del formulario de alta (solo administrador).
+  const [fee, setFee] = useState("");
+  const [payDay, setPayDay] = useState("");
+  const [modality, setModality] = useState("");
 
   const isAdmin = currentUser?.role === "administrador";
   const [onlyPending, setOnlyPending] = useState(false);
@@ -29,6 +33,15 @@ export default function ClientesPage() {
   const currentMonth = todayISO().slice(0, 7);
   const monthlyPayment = payments.find((p) => p.dueDate.slice(0, 7) === currentMonth);
   const monthlyPaid = monthlyPayment ? Boolean(monthlyPayment.paidDate) : false;
+  // Borradores de los datos de cobro de la ficha seleccionada (solo administrador).
+  const [feeDraft, setFeeDraft] = useState("");
+  const [dayDraft, setDayDraft] = useState("");
+  const [modalityDraft, setModalityDraft] = useState("");
+  useEffect(() => {
+    setFeeDraft(selected?.monthlyFeeCents ? String(selected.monthlyFeeCents / 100) : "");
+    setDayDraft(selected?.paymentDay ? String(selected.paymentDay) : "");
+    setModalityDraft(selected?.modality ?? "");
+  }, [selected?.id]);
 
   return (
     <RequireAuth roles={["administrador", "entrenador"]}>
@@ -41,8 +54,8 @@ export default function ClientesPage() {
           onSubmit={(e) => {
             e.preventDefault();
             if (!name.trim()) return;
-            saveMember({ id: 0, name: name.trim(), phone: phone.trim(), email: "", plan: "Mensual", goal, startDate: todayISO(), status: "activo", notes: "" } as Member);
-            setName(""); setPhone("");
+            saveMember({ id: 0, name: name.trim(), phone: phone.trim(), email: "", plan: "Mensual", goal, startDate: todayISO(), status: "activo", notes: "", monthlyFeeCents: fee ? Math.round(Number(fee) * 100) : undefined, paymentDay: payDay ? Number(payDay) : null, modality: modality.trim() } as Member);
+            setName(""); setPhone(""); setFee(""); setPayDay(""); setModality("");
           }}
         >
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre del cliente" className="flex-1 rounded-lg border border-gray-300 px-3 py-2" required />
@@ -54,6 +67,13 @@ export default function ClientesPage() {
             <option>Spinning</option>
             <option>General</option>
           </select>
+          {isAdmin && (
+            <>
+              <input value={fee} onChange={(e) => setFee(e.target.value)} type="number" min="0" placeholder="Cuota mensual ($)" className="w-36 rounded-lg border border-gray-300 px-3 py-2" />
+              <input value={payDay} onChange={(e) => setPayDay(e.target.value)} type="number" min="1" max="31" placeholder="Día de pago" className="w-28 rounded-lg border border-gray-300 px-3 py-2" />
+              <input value={modality} onChange={(e) => setModality(e.target.value)} placeholder="Modalidad (1 persona…)" className="w-44 rounded-lg border border-gray-300 px-3 py-2" />
+            </>
+          )}
           <button className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white">Añadir cliente</button>
         </form>
 
@@ -74,7 +94,7 @@ export default function ClientesPage() {
                   {m.status !== "activo" && (
                     <span className="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-600">Dado de baja</span>
                   )}
-                  <span className="block text-xs text-gray-500">{m.plan} · {m.goal} · {m.status}</span>
+                  <span className="block text-xs text-gray-500">{m.plan} · {m.goal} · {m.status}{isAdmin && m.monthlyFeeCents ? ` · ${formatMXN(m.monthlyFeeCents)}` : ""}</span>
                 </button>
               ))}
           </div>
@@ -134,6 +154,33 @@ export default function ClientesPage() {
                     </p>
                   )}
                 </section>
+
+                {isAdmin && (
+                  <section className="rounded-xl border border-gray-200 bg-white p-4">
+                    <h3 className="font-semibold">Datos de cobro</h3>
+                    <p className="mt-1 text-xs text-gray-500">Solo los ve el administrador. La cuota es lo que paga cada mes; el día es cuando vence su mensualidad.</p>
+                    <div className="mt-3 flex flex-wrap items-end gap-2">
+                      <label className="text-sm text-gray-700">
+                        Cuota mensual ($)
+                        <input value={feeDraft} onChange={(e) => setFeeDraft(e.target.value)} type="number" min="0" placeholder="550" className="mt-1 block w-28 rounded-lg border border-gray-300 px-3 py-2" />
+                      </label>
+                      <label className="text-sm text-gray-700">
+                        Día de pago
+                        <input value={dayDraft} onChange={(e) => setDayDraft(e.target.value)} type="number" min="1" max="31" placeholder="4" className="mt-1 block w-24 rounded-lg border border-gray-300 px-3 py-2" />
+                      </label>
+                      <label className="text-sm text-gray-700">
+                        Modalidad
+                        <input value={modalityDraft} onChange={(e) => setModalityDraft(e.target.value)} placeholder="1 persona" className="mt-1 block w-44 rounded-lg border border-gray-300 px-3 py-2" />
+                      </label>
+                      <button
+                        onClick={() => saveMember({ ...selected, monthlyFeeCents: feeDraft ? Math.round(Number(feeDraft) * 100) : undefined, paymentDay: dayDraft ? Number(dayDraft) : null, modality: modalityDraft.trim() })}
+                        className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white"
+                      >
+                        Guardar datos de cobro
+                      </button>
+                    </div>
+                  </section>
+                )}
 
                 <section className="rounded-xl border border-gray-200 bg-white p-4">
                   <h3 className="font-semibold">Evolución de peso / progreso</h3>

@@ -11,7 +11,10 @@ create table if not exists members (
   goal text not null default '',
   start_date date,
   status text not null default 'activo' check (status in ('activo', 'inactivo')),
-  notes text not null default ''
+  notes text not null default '',
+  monthly_fee_cents integer,
+  payment_day integer,
+  modality text not null default ''
 );
 
 create table if not exists exercises (

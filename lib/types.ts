@@ -10,6 +10,10 @@ export interface Member {
   startDate: string;
   status: "activo" | "inactivo";
   notes: string;
+  // Datos de cobro (solo los ve el administrador).
+  monthlyFeeCents?: number;
+  paymentDay?: number | null;
+  modality?: string;
 }
 
 export interface GymClass {

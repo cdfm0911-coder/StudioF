@@ -6,31 +6,31 @@
 -- propia app (pantalla "Crea tu cuenta de administrador") y cambia los
 -- PIN de ejemplo que pongas. No guardes PIN reales en este archivo.
 
-insert into members (id, name, phone, email, plan, goal, start_date, status, notes) overriding system value values
-  (1, 'Carlos', '4426771084', '', 'Mensual', 'Hyrox', '2026-11-25', 'activo', ''),
-  (2, 'Camilla Barnes', '+44 7780 663864', '', 'Mensual', 'Spinning', '2026-11-25', 'activo', ''),
-  (3, 'Karla Cruz', '4411087068', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona'),
-  (4, 'Adriana Olvera', '4461486768', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago no registrado · Modalidad: 1 persona · Pago noviembre: pendiente'),
-  (5, 'Geraldine Botello', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 15 · Modalidad: 1 persona'),
-  (6, 'Daniel y su novio', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 20 · Modalidad: 1 persona · Solo pago Daniel'),
-  (7, 'Alexia Zúñiga', '4981006808', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona'),
-  (8, 'Luis Flores', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 12 · Modalidad: 1 persona'),
-  (9, 'Naomi Gonzalez', '4464039859', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 16 · Modalidad: 1 persona'),
-  (10, 'Elia Landaverde', '6018625658', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona'),
-  (11, 'Miriam Rivas', '4411196162', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona'),
-  (12, 'Brenda Erreguín', '4411090917', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 5 · Modalidad: 1 persona'),
-  (13, 'Juanito', '4411007288', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona'),
-  (14, 'Leyda Sifuentes', '4411033755', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona'),
-  (15, 'Melissa Anghí', '4411385882', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 11 · Modalidad: 1 persona'),
-  (16, 'Nery Sánchez', '4411079487', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: Mensualidad combinada'),
-  (17, 'Vanessa Torres', '4272142831', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 21 · Modalidad: 1 persona'),
-  (18, 'Lulu Jaso', '4411031136', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: Mensualidad combinada'),
-  (19, 'Grecia Suárez y Héctor', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 9 · Modalidad: 2 personas'),
-  (20, 'Julia Flores', '4411173492', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 17 · Modalidad: 1 persona'),
-  (21, 'Bethuli Manrriquez', '4423869958', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona'),
-  (22, 'Valeria Flores', '4411377682', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago no registrado · Modalidad: 1 persona · Pago noviembre: pagado (día no registrado)'),
-  (23, 'Naomi 7 am', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 17 · Modalidad: 1 persona'),
-  (24, 'Paty Cosino', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 16 · Modalidad: 1 persona')
+insert into members (id, name, phone, email, plan, goal, start_date, status, notes, monthly_fee_cents, payment_day, modality) overriding system value values
+  (1, 'Carlos', '4426771084', '', 'Mensual', 'Hyrox', '2026-11-25', 'activo', '', 55000, NULL, ''),
+  (2, 'Camilla Barnes', '+44 7780 663864', '', 'Mensual', 'Spinning', '2026-11-25', 'activo', '', 55000, NULL, ''),
+  (3, 'Karla Cruz', '4411087068', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona', 55000, 4, '1 persona'),
+  (4, 'Adriana Olvera', '4461486768', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago no registrado · Modalidad: 1 persona · Pago noviembre: pendiente', 55000, NULL, '1 persona'),
+  (5, 'Geraldine Botello', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 15 · Modalidad: 1 persona', 55000, 15, '1 persona'),
+  (6, 'Daniel y su novio', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 20 · Modalidad: 1 persona · Solo pago Daniel', 55000, 20, '1 persona'),
+  (7, 'Alexia Zúñiga', '4981006808', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona', 55000, 4, '1 persona'),
+  (8, 'Luis Flores', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 12 · Modalidad: 1 persona', 55000, 12, '1 persona'),
+  (9, 'Naomi Gonzalez', '4464039859', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 16 · Modalidad: 1 persona', 55000, 16, '1 persona'),
+  (10, 'Elia Landaverde', '6018625658', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona', 55000, 4, '1 persona'),
+  (11, 'Miriam Rivas', '4411196162', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona', 55000, 4, '1 persona'),
+  (12, 'Brenda Erreguín', '4411090917', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 5 · Modalidad: 1 persona', 55000, 5, '1 persona'),
+  (13, 'Juanito', '4411007288', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona', 55000, 4, '1 persona'),
+  (14, 'Leyda Sifuentes', '4411033755', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona', 55000, 4, '1 persona'),
+  (15, 'Melissa Anghí', '4411385882', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 11 · Modalidad: 1 persona', 55000, 11, '1 persona'),
+  (16, 'Nery Sánchez', '4411079487', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: Mensualidad combinada', 75000, 4, 'Mensualidad combinada'),
+  (17, 'Vanessa Torres', '4272142831', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 21 · Modalidad: 1 persona', 55000, 21, '1 persona'),
+  (18, 'Lulu Jaso', '4411031136', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: Mensualidad combinada', 75000, 4, 'Mensualidad combinada'),
+  (19, 'Grecia Suárez y Héctor', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 9 · Modalidad: 2 personas', 110000, 9, '2 personas'),
+  (20, 'Julia Flores', '4411173492', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 17 · Modalidad: 1 persona', 55000, 17, '1 persona'),
+  (21, 'Bethuli Manrriquez', '4423869958', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 4 · Modalidad: 1 persona', 55000, 4, '1 persona'),
+  (22, 'Valeria Flores', '4411377682', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago no registrado · Modalidad: 1 persona · Pago noviembre: pagado (día no registrado)', 55000, NULL, '1 persona'),
+  (23, 'Naomi 7 am', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 17 · Modalidad: 1 persona', 55000, 17, '1 persona'),
+  (24, 'Paty Cosino', '', '', 'Mensual', 'Hyrox', NULL, 'activo', 'HYROX · Día de pago: 16 · Modalidad: 1 persona', 55000, 16, '1 persona')
 on conflict (id) do nothing;
 
 insert into classes (id, title, type, date, start_time, duration_min, coach, capacity, notes) overriding system value values
