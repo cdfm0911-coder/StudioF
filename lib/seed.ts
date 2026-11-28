@@ -80,9 +80,6 @@ export const SEED_DATA: GymData = {
   settings: [
     { id: 1, key: "whatsapp_template", value: DEFAULT_WHATSAPP_TEMPLATE },
     { id: 2, key: "whatsapp_number", value: "" },
-    { id: 3, key: "mercadopago_550", value: "" },
-    { id: 4, key: "mercadopago_750", value: "" },
-    { id: 5, key: "mercadopago_1100", value: "" },
   ],
   bookings: [],
   payments: [

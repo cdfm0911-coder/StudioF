@@ -5,7 +5,7 @@ import QRCode from "qrcode";
 import { RequireAuth } from "@/components/Login";
 import { Logo } from "@/components/Logo";
 import { getSetting, useGym } from "@/lib/store";
-import { DEFAULT_WHATSAPP_TEMPLATE, formatMXN, formatDateEs, mercadopagoLinkKey, paymentWhatsAppUrl, todayISO } from "@/lib/utils";
+import { DEFAULT_WHATSAPP_TEMPLATE, formatMXN, formatDateEs, paymentWhatsAppUrl, todayISO } from "@/lib/utils";
 import { fetchForecast, phraseForToday, type ForecastDay } from "@/lib/weather";
 
 export default function PortalPage() {
@@ -247,15 +247,11 @@ export default function PortalPage() {
           <h2 className="text-lg font-semibold">Mis pagos</h2>
           <ul className="mt-2 space-y-2 text-sm">
             {payments.map((p) => {
-              const payLink = getSetting(data.settings, mercadopagoLinkKey(p.amountCents), "");
-              const url = member && !p.paidDate ? paymentWhatsAppUrl(p, member.name, member.phone, getSetting(data.settings, "whatsapp_template", DEFAULT_WHATSAPP_TEMPLATE), getSetting(data.settings, "whatsapp_number", ""), payLink) : null;
+              const url = member && !p.paidDate ? paymentWhatsAppUrl(p, member.name, member.phone, getSetting(data.settings, "whatsapp_template", DEFAULT_WHATSAPP_TEMPLATE), getSetting(data.settings, "whatsapp_number", "")) : null;
               return (
                 <li key={p.id} className="flex flex-wrap items-center gap-3">
                   <span>{p.concept} · {formatMXN(p.amountCents)} · vence {formatDateEs(p.dueDate)} · {p.paidDate ? `pagado ${formatDateEs(p.paidDate)}` : "pendiente"}</span>
                   <span className="ml-auto flex items-center gap-2">
-                    {!p.paidDate && payLink && (
-                      <a href={payLink} target="_blank" rel="noreferrer" className="rounded-lg bg-[#009EE3] px-3 py-1 text-white">Pagar</a>
-                    )}
                     {url && (
                       <a href={url} target="_blank" rel="noreferrer" className="rounded-lg bg-green-600 px-3 py-1 text-white">WhatsApp</a>
                     )}

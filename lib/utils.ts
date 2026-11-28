@@ -48,26 +48,20 @@ export function whatsappUrlForNumber(phone: string, text: string): string | null
 }
 
 /** Plantilla por defecto del aviso de pago por WhatsApp.
- *  Variables: {nombre}, {concepto}, {importe}, {vencimiento}, {numero_gym}, {link_pago}. */
+ *  Variables: {nombre}, {concepto}, {importe}, {vencimiento}, {numero_gym}. */
 export const DEFAULT_WHATSAPP_TEMPLATE =
   "Hola {nombre}, te recordamos tu pago de Studio Functional Fitness: {concepto} por {importe}, que {vencimiento}. ¿Te ayudamos con algo?";
 
-/** Clave del ajuste con el link de Mercado Pago para un importe (en centavos). */
-export function mercadopagoLinkKey(amountCents: number): string {
-  return `mercadopago_${amountCents / 100}`;
-}
-
 export function renderWhatsAppTemplate(
   template: string,
-  vars: { nombre: string; concepto: string; importe: string; vencimiento: string; numeroGym: string; linkPago: string }
+  vars: { nombre: string; concepto: string; importe: string; vencimiento: string; numeroGym: string }
 ): string {
   return (template || DEFAULT_WHATSAPP_TEMPLATE)
     .replaceAll("{nombre}", vars.nombre)
     .replaceAll("{concepto}", vars.concepto)
     .replaceAll("{importe}", vars.importe)
     .replaceAll("{vencimiento}", vars.vencimiento)
-    .replaceAll("{numero_gym}", vars.numeroGym)
-    .replaceAll("{link_pago}", vars.linkPago);
+    .replaceAll("{numero_gym}", vars.numeroGym);
 }
 
 export function paymentWhatsAppUrl(
@@ -75,8 +69,7 @@ export function paymentWhatsAppUrl(
   memberName: string,
   memberPhone: string,
   template: string = DEFAULT_WHATSAPP_TEMPLATE,
-  gymNumber: string = "",
-  paymentLink: string = ""
+  gymNumber: string = ""
 ): string | null {
   const wa = normalizePhoneForWhatsApp(memberPhone);
   if (!wa) return null;
@@ -89,7 +82,6 @@ export function paymentWhatsAppUrl(
     importe: formatMXN(p.amountCents),
     vencimiento: when,
     numeroGym: gymNumber,
-    linkPago: paymentLink,
   });
   return `https://wa.me/${wa}?text=${encodeURIComponent(text)}`;
 }
