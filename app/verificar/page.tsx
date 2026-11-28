@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { RequireAuth } from "@/components/Login";
-import { useGym } from "@/lib/store";
-import { formatMXN, formatDateEs, formatMonthEs, todayISO } from "@/lib/utils";
+import { getSetting, useGym } from "@/lib/store";
+import { formatMXN, formatDateEs, formatMonthEs, todayISO, whatsappUrlForNumber } from "@/lib/utils";
 
 // Verificación por QR: el entrenador escanea el código del cliente con la cámara
 // de su teléfono y esta página muestra si pagó la mensualidad del mes en curso.
 // Los entrenadores solo ven el estado (pagada/pendiente), sin importes;
 // el administrador además ve el importe y puede marcar el pago como pagado.
 export default function VerificarPage() {
-  const { data, loading, currentUser, markPaid } = useGym();
+  const { data, loading, currentUser, markPaid, checkIn } = useGym();
   const [memberId, setMemberId] = useState<number | null>(null);
+  const [checkedIn, setCheckedIn] = useState<{ title: string; startTime: string } | null>(null);
+  const [checkInError, setCheckInError] = useState("");
   const isAdmin = currentUser?.role === "administrador";
 
   useEffect(() => {
@@ -25,6 +27,23 @@ export default function VerificarPage() {
     ? data.payments.find((p) => p.memberId === member.id && p.dueDate.slice(0, 7) === currentMonth)
     : null;
   const monthlyPaid = monthlyPayment ? Boolean(monthlyPayment.paidDate) : false;
+  const today = todayISO();
+  const todaysClasses = data.classes
+    .filter((c) => c.date === today)
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const isCheckedIn = (c: (typeof data.classes)[number]) =>
+    member
+      ? data.bookings.some((b) => {
+          if (b.memberId !== member.id || b.attended !== true) return false;
+          const bc = data.classes.find((x) => x.id === b.classId);
+          return bc ? bc.date === c.date && bc.startTime === c.startTime && bc.title === c.title : false;
+        })
+      : false;
+  const gymNumber = getSetting(data.settings, "whatsapp_number", "");
+  const notifyUrl =
+    checkedIn && member
+      ? whatsappUrlForNumber(gymNumber, `Entrada registrada: ${member.name} entró a ${checkedIn.title} a las ${checkedIn.startTime}.`)
+      : null;
 
   return (
     <RequireAuth roles={["administrador", "entrenador"]}>
@@ -42,6 +61,7 @@ export default function VerificarPage() {
             </p>
           </div>
         ) : (
+          <>
           <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6">
             <p className="text-xl font-bold">{member.name}</p>
             <p className="mt-1 text-sm text-gray-600">
@@ -87,6 +107,76 @@ export default function VerificarPage() {
               </div>
             )}
           </div>
+
+          {member.status === "activo" && (
+            <div className="mt-4 rounded-xl border border-gray-200 bg-white p-6 text-left">
+              <h2 className="text-center text-lg font-semibold">Registrar entrada</h2>
+              <p className="mt-1 text-center text-sm text-gray-600">Clases de hoy · {formatDateEs(today)}</p>
+              {todaysClasses.length === 0 ? (
+                <p className="mt-3 text-center text-sm text-gray-500">No hay clases hoy.</p>
+              ) : (
+                <ul className="mt-3 space-y-2">
+                  {todaysClasses.map((c) => {
+                    const done = isCheckedIn(c);
+                    const count = data.bookings.filter((b) => b.classId === c.id).length;
+                    return (
+                      <li key={c.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 p-3">
+                        <span className="font-medium">
+                          {c.startTime} · {c.title}
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          {c.coach} · {count}/{c.capacity}
+                        </span>
+                        {done ? (
+                          <span className="ml-auto rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
+                            ✓ Entrada registrada
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const ok = checkIn(c.id, member.id);
+                              if (ok) {
+                                setCheckedIn({ title: c.title, startTime: c.startTime });
+                                setCheckInError("");
+                              } else {
+                                setCheckInError("No se pudo registrar la entrada (clase llena).");
+                              }
+                            }}
+                            className="ml-auto rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700"
+                          >
+                            Registrar entrada
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {checkInError && <p className="mt-3 text-center text-sm text-red-600">{checkInError}</p>}
+              {checkedIn && (
+                <div className="mt-4 rounded-lg bg-green-50 p-3 text-center">
+                  <p className="text-sm font-medium text-green-800">
+                    ✓ Entrada registrada: {member.name} → {checkedIn.title} {checkedIn.startTime}
+                  </p>
+                  {notifyUrl ? (
+                    <a
+                      href={notifyUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-block rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+                    >
+                      Avisar a Carlos por WhatsApp
+                    </a>
+                  ) : (
+                    <p className="mt-2 text-xs text-gray-500">
+                      Configura el número del gimnasio en Ajustes para avisar por WhatsApp.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          </>
         )}
       </main>
     </RequireAuth>

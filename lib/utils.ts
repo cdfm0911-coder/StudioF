@@ -40,6 +40,13 @@ export function normalizePhoneForWhatsApp(phone: string): string | null {
   return digits;
 }
 
+/** Enlace wa.me a un número con un mensaje prellenado (no envía solo). */
+export function whatsappUrlForNumber(phone: string, text: string): string | null {
+  const wa = normalizePhoneForWhatsApp(phone);
+  if (!wa) return null;
+  return `https://wa.me/${wa}?text=${encodeURIComponent(text)}`;
+}
+
 /** Plantilla por defecto del aviso de pago por WhatsApp.
  *  Variables: {nombre}, {concepto}, {importe}, {vencimiento}, {numero_gym}, {link_pago}. */
 export const DEFAULT_WHATSAPP_TEMPLATE =

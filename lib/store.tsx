@@ -58,6 +58,7 @@ interface GymContextValue {
   bookMember: (classId: number, memberId: number) => void;
   cancelBooking: (classId: number, memberId: number) => void;
   setAttendance: (bookingId: number, attended: boolean | null) => void;
+  checkIn: (classId: number, memberId: number) => boolean;
   savePayment: (p: Payment) => void;
   deletePayment: (id: number) => void;
   markPaid: (id: number) => void;
@@ -536,6 +537,47 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       const b = data.bookings.find((x) => x.id === bookingId);
       if (b) void syncRow("bookings", { ...b, attended } as unknown as Record<string, unknown>);
     };
+    // Registrar la entrada de un cliente a una clase (check-in con QR):
+    // lo inscribe si no lo está y marca su asistencia en el mismo paso,
+    // para que la entrada quede guardada en la base. Devuelve false si no
+    // se pudo registrar (cliente inactivo o clase llena).
+    const checkIn = (classId: number, memberId: number): boolean => {
+      const m = data.members.find((x) => x.id === memberId);
+      if (!m || m.status !== "activo") return false;
+      let cls = expandedClasses.find((c) => c.id === classId);
+      if (!cls) return false;
+      // Una sesión virtual se convierte en clase real, como al reservar.
+      if (cls.virtual) {
+        const real: GymClass = {
+          id: nextId(data.classes),
+          title: cls.title,
+          type: cls.type,
+          date: cls.date,
+          startTime: cls.startTime,
+          durationMin: cls.durationMin,
+          coach: cls.coach,
+          capacity: cls.capacity,
+          notes: cls.notes,
+        };
+        update("classes", (items) => [...items, real]);
+        void syncRow("classes", real as unknown as Record<string, unknown>);
+        classId = real.id;
+        cls = real;
+      }
+      const existing = data.bookings.find((b) => b.classId === classId && b.memberId === memberId);
+      if (existing) {
+        if (existing.attended === true) return true;
+        update("bookings", (items) => items.map((x) => (x.id === existing.id ? { ...x, attended: true } : x)));
+        void syncRow("bookings", { ...existing, attended: true } as unknown as Record<string, unknown>);
+        return true;
+      }
+      const booked = data.bookings.filter((b) => b.classId === classId).length;
+      if (booked >= cls.capacity) return false;
+      const b: Booking = { id: nextId(data.bookings), classId, memberId, attended: true };
+      update("bookings", (items) => [...items, b]);
+      void syncRow("bookings", b as unknown as Record<string, unknown>);
+      return true;
+    };
     const savePayment = (p: Payment) => {
       const item = p.id ? p : { ...p, id: nextId(data.payments) };
       update("payments", (items) => (p.id ? items.map((x) => (x.id === p.id ? item : x)) : [...items, item]));
@@ -668,6 +710,7 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       bookMember,
       cancelBooking,
       setAttendance,
+      checkIn,
       savePayment,
       deletePayment,
       markPaid,

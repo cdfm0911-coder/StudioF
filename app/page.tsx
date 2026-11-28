@@ -14,6 +14,15 @@ export default function HoyPage() {
   const stats = monthStats(data.payments, month);
   const pct = stats.expectedCents > 0 ? Math.round((stats.collectedCents / stats.expectedCents) * 100) : 0;
   const months = monthsWithPayments(data.payments).slice(-6);
+  const todaysCheckIns = data.bookings
+    .filter((b) => b.attended === true)
+    .map((b) => ({
+      b,
+      c: data.classes.find((x) => x.id === b.classId) ?? null,
+      m: data.members.find((x) => x.id === b.memberId) ?? null,
+    }))
+    .filter((x) => x.c && x.c.date === today)
+    .sort((a, b) => (a.c?.startTime ?? "").localeCompare(b.c?.startTime ?? ""));
   const activeClients = data.members.filter((m) => m.status === "activo").length;
   const todaysClasses = data.classes.filter((c) => c.date === today);
   const todaysBookings = data.bookings.filter((b) => todaysClasses.some((c) => c.id === b.classId)).length;
@@ -171,6 +180,27 @@ export default function HoyPage() {
             </ul>
           )}
         </section>
+        )}
+
+        {isAdmin && (
+          <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+            <h2 className="text-lg font-semibold">Entradas de hoy</h2>
+            <p className="text-sm text-gray-600">Clientes que registraron su entrada con el QR.</p>
+            {todaysCheckIns.length === 0 ? (
+              <p className="mt-2 text-sm text-gray-600">Aún no hay entradas registradas hoy.</p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {todaysCheckIns.map(({ b, c, m }) => (
+                  <li key={b.id} className="flex flex-wrap items-center gap-3 rounded-lg bg-gray-50 p-3 text-sm">
+                    <span className="font-medium">{m?.name ?? "Cliente"}</span>
+                    <span className="text-gray-600">
+                      entró a {c?.title} · {c?.startTime}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         )}
 
         <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
