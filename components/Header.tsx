@@ -31,7 +31,12 @@ export function Header() {
   const pathname = usePathname();
   const nav =
     currentUser?.role === "administrador" ? NAV_ADMIN : currentUser?.role === "entrenador" ? NAV_TRAINER : NAV_CLIENT;
-  const connected = mode === "supabase" && syncStatus.loadErrors.length === 0 && !syncStatus.usingSeed;
+  const connected =
+    mode === "supabase" &&
+    !syncStatus.usingSeed &&
+    !syncStatus.loadErrors.some((t) => t !== "settings");
+  // La tabla settings puede faltar (migración pendiente) sin que eso signifique
+  // que el dispositivo no ve la base compartida: clientes, clases y pagos sí se comparten.
 
   return (
     <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur">
@@ -56,7 +61,7 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
-            <span className="ml-2 hidden text-xs text-gray-500 sm:inline">
+            <span className="ml-2 text-xs text-gray-500">
               {currentUser.name} · {currentUser.role}
               {" · "}
               <span className={connected ? "font-medium text-green-700" : "font-medium text-amber-700"}>
