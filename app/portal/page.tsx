@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { RequireAuth } from "@/components/Login";
 import { Logo } from "@/components/Logo";
 import { getSetting, useGym } from "@/lib/store";
@@ -11,6 +12,14 @@ export default function PortalPage() {
   const { data, currentUser, bookMember, cancelBooking } = useGym();
   const [forecast, setForecast] = useState<ForecastDay[] | null>(null);
   const [forecastFailed, setForecastFailed] = useState(false);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const member = currentUser?.memberId ? data.members.find((m) => m.id === currentUser.memberId) : null;
+  const assignment = member ? data.assignments.find((a) => a.memberId === member.id && a.active) : null;
+  const routine = assignment ? data.routines.find((r) => r.id === assignment.routineId) : null;
+  const upcoming = data.classes
+    .filter((c) => c.date >= todayISO())
+    .sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
+
   useEffect(() => {
     let alive = true;
     fetchForecast().then((days) => {
@@ -22,13 +31,19 @@ export default function PortalPage() {
       alive = false;
     };
   }, []);
-  const member = currentUser?.memberId ? data.members.find((m) => m.id === currentUser.memberId) : null;
-  const assignment = member ? data.assignments.find((a) => a.memberId === member.id && a.active) : null;
-  const routine = assignment ? data.routines.find((r) => r.id === assignment.routineId) : null;
-  const upcoming = data.classes
-    .filter((c) => c.date >= todayISO())
-    .sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
-
+  // Código QR del cliente: abre la página de verificación de su mensualidad.
+  useEffect(() => {
+    if (!member) return;
+    let alive = true;
+    const url = `${window.location.origin}/verificar?m=${member.id}`;
+    QRCode.toDataURL(url, { width: 220, margin: 1 }).then((dataUrl) => {
+      if (alive) setQrUrl(dataUrl);
+    });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [member?.id]);
   // --- Calendario de reserva: dos semanas (esta y la próxima), lunes a domingo,
   // con el día de la semana en cada columna y las horas como filas. ---
   const WEEKDAYS_LONG = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
@@ -97,6 +112,20 @@ export default function PortalPage() {
             )}
           </div>
         </section>
+
+        {member && (
+          <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4 text-center">
+            <h2 className="text-lg font-semibold">Mi código QR</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Muestra este código a tu entrenador para verificar tu mensualidad.
+            </p>
+            {qrUrl ? (
+              <img src={qrUrl} alt="Código QR de verificación" width={220} height={220} className="mx-auto mt-3" />
+            ) : (
+              <p className="mt-3 text-sm text-gray-500">Generando código…</p>
+            )}
+          </section>
+        )}
 
         <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
           <h2 className="text-lg font-semibold">Mi rutina</h2>
