@@ -136,11 +136,14 @@ overriding system value values
   (3, 'Hyrox', 'Sesión grupal', array[1,2,3,4,5], '2026-11-27', '19:00', 60, 12, 'Jesus', '', true)
 on conflict (id) do nothing;
 
--- Ajustes: plantilla de WhatsApp y número del gimnasio.
+-- Ajustes: plantilla de WhatsApp, número del gimnasio y links de Mercado Pago.
 insert into settings (id, key, value)
 overriding system value values
   (1, 'whatsapp_template', 'Hola {nombre}, te recordamos tu pago de Studio Functional Fitness: {concepto} por {importe}, que {vencimiento}. ¿Te ayudamos con algo?'),
-  (2, 'whatsapp_number', '')
+  (2, 'whatsapp_number', ''),
+  (3, 'mercadopago_550', ''),
+  (4, 'mercadopago_750', ''),
+  (5, 'mercadopago_1100', '')
 on conflict (id) do nothing;
 
 -- Rutinas, asignaciones, reservas y progreso: 0 en la app original, se empieza vacío.

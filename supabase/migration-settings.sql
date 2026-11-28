@@ -13,7 +13,10 @@ create policy "acceso app" on settings for all to anon, authenticated using (tru
 insert into settings (id, key, value)
 overriding system value values
   (1, 'whatsapp_template', 'Hola {nombre}, te recordamos tu pago de Studio Functional Fitness: {concepto} por {importe}, que {vencimiento}. ¿Te ayudamos con algo?'),
-  (2, 'whatsapp_number', '')
+  (2, 'whatsapp_number', ''),
+  (3, 'mercadopago_550', ''),
+  (4, 'mercadopago_750', ''),
+  (5, 'mercadopago_1100', '')
 on conflict (id) do nothing;
 
 select setval(pg_get_serial_sequence('settings', 'id'), coalesce((select max(id) from settings), 1));

@@ -3,7 +3,7 @@
 import { RequireAuth } from "@/components/Login";
 import { Logo } from "@/components/Logo";
 import { getSetting, useGym } from "@/lib/store";
-import { DEFAULT_WHATSAPP_TEMPLATE, formatMXN, formatDateEs, paymentWhatsAppUrl, todayISO } from "@/lib/utils";
+import { DEFAULT_WHATSAPP_TEMPLATE, formatMXN, formatDateEs, mercadopagoLinkKey, paymentWhatsAppUrl, todayISO } from "@/lib/utils";
 
 export default function PortalPage() {
   const { data, currentUser, bookMember, cancelBooking } = useGym();
@@ -175,13 +175,19 @@ export default function PortalPage() {
           <h2 className="text-lg font-semibold">Mis pagos</h2>
           <ul className="mt-2 space-y-2 text-sm">
             {payments.map((p) => {
-              const url = member && !p.paidDate ? paymentWhatsAppUrl(p, member.name, member.phone, getSetting(data.settings, "whatsapp_template", DEFAULT_WHATSAPP_TEMPLATE), getSetting(data.settings, "whatsapp_number", "")) : null;
+              const payLink = getSetting(data.settings, mercadopagoLinkKey(p.amountCents), "");
+              const url = member && !p.paidDate ? paymentWhatsAppUrl(p, member.name, member.phone, getSetting(data.settings, "whatsapp_template", DEFAULT_WHATSAPP_TEMPLATE), getSetting(data.settings, "whatsapp_number", ""), payLink) : null;
               return (
                 <li key={p.id} className="flex flex-wrap items-center gap-3">
                   <span>{p.concept} · {formatMXN(p.amountCents)} · vence {formatDateEs(p.dueDate)} · {p.paidDate ? `pagado ${formatDateEs(p.paidDate)}` : "pendiente"}</span>
-                  {url && (
-                    <a href={url} target="_blank" rel="noreferrer" className="ml-auto rounded-lg bg-green-600 px-3 py-1 text-white">WhatsApp</a>
-                  )}
+                  <span className="ml-auto flex items-center gap-2">
+                    {!p.paidDate && payLink && (
+                      <a href={payLink} target="_blank" rel="noreferrer" className="rounded-lg bg-[#009EE3] px-3 py-1 text-white">Pagar</a>
+                    )}
+                    {url && (
+                      <a href={url} target="_blank" rel="noreferrer" className="rounded-lg bg-green-600 px-3 py-1 text-white">WhatsApp</a>
+                    )}
+                  </span>
                 </li>
               );
             })}

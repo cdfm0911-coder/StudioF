@@ -4,7 +4,7 @@ import { useState } from "react";
 import { RequireAuth } from "@/components/Login";
 import { getSetting, useGym } from "@/lib/store";
 import { Payment } from "@/lib/types";
-import { DEFAULT_WHATSAPP_TEMPLATE, formatMXN, formatDateEs, paymentStatus, PAYMENT_STATUS_LABEL, paymentWhatsAppUrl, todayISO } from "@/lib/utils";
+import { DEFAULT_WHATSAPP_TEMPLATE, formatMXN, formatDateEs, mercadopagoLinkKey, paymentStatus, PAYMENT_STATUS_LABEL, paymentWhatsAppUrl, todayISO } from "@/lib/utils";
 
 export default function PagosPage() {
   const { data, savePayment, deletePayment, markPaid } = useGym();
@@ -61,7 +61,7 @@ export default function PagosPage() {
           {sorted.map((p) => {
             const member = data.members.find((m) => m.id === p.memberId);
             const status = paymentStatus(p);
-            const url = member && !p.paidDate ? paymentWhatsAppUrl(p, member.name, member.phone, getSetting(data.settings, "whatsapp_template", DEFAULT_WHATSAPP_TEMPLATE), getSetting(data.settings, "whatsapp_number", "")) : null;
+            const url = member && !p.paidDate ? paymentWhatsAppUrl(p, member.name, member.phone, getSetting(data.settings, "whatsapp_template", DEFAULT_WHATSAPP_TEMPLATE), getSetting(data.settings, "whatsapp_number", ""), getSetting(data.settings, mercadopagoLinkKey(p.amountCents), "")) : null;
             return (
               <li key={p.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-4">
                 <span
