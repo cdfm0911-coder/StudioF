@@ -39,6 +39,7 @@ export default function AjustesPage() {
     importe: "$550.00",
     vencimiento: "vence el 4 dic 2026",
     numeroGym: numberDraft || "441 100 0000",
+    linkPago: mpDrafts["mercadopago_550"] || "https://mpago.la/ejemplo",
   });
 
   return (
