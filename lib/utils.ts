@@ -81,6 +81,60 @@ export function paymentWhatsAppUrl(
 
 export type PaymentStatus = "pagado" | "vencido" | "vence-hoy" | "avisar-hoy" | "proximo" | "pendiente";
 
+/** "2026-11" a partir de una fecha YYYY-MM-DD. */
+export function monthKey(iso: string): string {
+  return iso ? iso.slice(0, 7) : "";
+}
+
+/** "noviembre de 2026" a partir de "2026-11". */
+export function formatMonthEs(ym: string): string {
+  if (!/^\d{4}-\d{2}$/.test(ym)) return ym;
+  const d = new Date(`${ym}-01T12:00:00`);
+  return d.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+}
+
+/** Mes anterior/siguiente ("2026-11" → "2026-10" / "2026-12"). */
+export function shiftMonth(ym: string, delta: number): string {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export interface MonthStats {
+  expectedCents: number;
+  collectedCents: number;
+  pendingCents: number;
+  activeMembers: number;
+  pendingCount: number;
+  paidCount: number;
+}
+
+/** Estadísticas de un mes (YYYY-MM) a partir de los pagos.
+ *  Esperado, activos y pendientes se cuentan por fecha de vencimiento; cobrado, por fecha de pago. */
+export function monthStats(payments: Payment[], ym: string): MonthStats {
+  const due = payments.filter((p) => monthKey(p.dueDate) === ym);
+  const paid = payments.filter((p) => p.paidDate && monthKey(p.paidDate) === ym);
+  const pending = due.filter((p) => !p.paidDate);
+  return {
+    expectedCents: due.reduce((s, p) => s + p.amountCents, 0),
+    collectedCents: paid.reduce((s, p) => s + p.amountCents, 0),
+    pendingCents: pending.reduce((s, p) => s + p.amountCents, 0),
+    activeMembers: new Set(due.map((p) => p.memberId)).size,
+    pendingCount: pending.length,
+    paidCount: paid.length,
+  };
+}
+
+/** Meses (YYYY-MM) que tienen al menos un pago (por vencimiento o por cobro), ordenados. */
+export function monthsWithPayments(payments: Payment[]): string[] {
+  const set = new Set<string>();
+  for (const p of payments) {
+    if (monthKey(p.dueDate)) set.add(monthKey(p.dueDate));
+    if (p.paidDate && monthKey(p.paidDate)) set.add(monthKey(p.paidDate));
+  }
+  return [...set].sort();
+}
+
 export function paymentStatus(p: Payment): PaymentStatus {
   if (p.paidDate) return "pagado";
   const days = daysUntil(p.dueDate);

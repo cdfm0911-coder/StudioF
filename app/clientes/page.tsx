@@ -16,6 +16,8 @@ export default function ClientesPage() {
   const [note, setNote] = useState("");
 
   const isAdmin = currentUser?.role === "administrador";
+  const [onlyPending, setOnlyPending] = useState(false);
+  const hasPending = (id: number) => data.payments.some((p) => p.memberId === id && !p.paidDate);
   const selected = data.members.find((m) => m.id === selectedId) || null;
   const activeRoutine = selected
     ? data.assignments.find((a) => a.memberId === selected.id && a.active)
@@ -57,7 +59,14 @@ export default function ClientesPage() {
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <div className="space-y-2">
+            {isAdmin && (
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white p-3 text-sm">
+                <input type="checkbox" checked={onlyPending} onChange={(e) => setOnlyPending(e.target.checked)} />
+                Solo pendientes por cobrar
+              </label>
+            )}
             {[...data.members]
+              .filter((m) => !onlyPending || hasPending(m.id))
               .sort((a, b) => (a.status === b.status ? a.name.localeCompare(b.name) : a.status === "activo" ? -1 : 1))
               .map((m) => (
                 <button key={m.id} onClick={() => setSelectedId(m.id)} className={`w-full rounded-xl border p-3 text-left ${selectedId === m.id ? "border-gray-900 bg-white" : "border-gray-200 bg-white"} ${m.status !== "activo" ? "opacity-60" : ""}`}>

@@ -1,14 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { RequireAuth } from "@/components/Login";
 import { getSetting, useGym } from "@/lib/store";
-import { DEFAULT_WHATSAPP_TEMPLATE, formatMXN, formatDateEs, paymentStatus, PAYMENT_STATUS_LABEL, paymentWhatsAppUrl, todayISO } from "@/lib/utils";
+import { DEFAULT_WHATSAPP_TEMPLATE, formatMXN, formatDateEs, formatMonthEs, monthStats, monthsWithPayments, paymentStatus, PAYMENT_STATUS_LABEL, paymentWhatsAppUrl, shiftMonth, todayISO } from "@/lib/utils";
 
 export default function HoyPage() {
-  const { data, loading, currentUser } = useGym();
+  const { data, loading, currentUser, markPaid } = useGym();
   const isAdmin = currentUser?.role === "administrador";
   const today = todayISO();
+  const [month, setMonth] = useState(today.slice(0, 7));
+  const stats = monthStats(data.payments, month);
+  const pct = stats.expectedCents > 0 ? Math.round((stats.collectedCents / stats.expectedCents) * 100) : 0;
+  const months = monthsWithPayments(data.payments).slice(-6);
   const activeClients = data.members.filter((m) => m.status === "activo").length;
   const todaysClasses = data.classes.filter((c) => c.date === today);
   const todaysBookings = data.bookings.filter((b) => todaysClasses.some((c) => c.id === b.classId)).length;
@@ -47,6 +52,72 @@ export default function HoyPage() {
         </div>
 
         {isAdmin && (
+          <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-semibold">Panel de control</h2>
+              <span className="ml-auto flex items-center gap-1">
+                <button onClick={() => setMonth((m) => shiftMonth(m, -1))} className="rounded-lg border border-gray-300 px-2 py-1 text-sm" aria-label="Mes anterior">‹</button>
+                <span className="min-w-36 text-center text-sm font-medium capitalize">{formatMonthEs(month)}</span>
+                <button onClick={() => setMonth((m) => shiftMonth(m, 1))} className="rounded-lg border border-gray-300 px-2 py-1 text-sm" aria-label="Mes siguiente">›</button>
+              </span>
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <p className="text-sm text-gray-500">Cobrado</p>
+                <p className="mt-1 text-2xl font-bold">{formatMXN(stats.collectedCents)}</p>
+                <p className="text-xs text-gray-500">de {formatMXN(stats.expectedCents)} esperados</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">% cobrado</p>
+                <p className="mt-1 text-2xl font-bold">{pct}%</p>
+                <p className="text-xs text-gray-500">{stats.paidCount} pagos cobrados</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Clientes activos</p>
+                <p className="mt-1 text-2xl font-bold">{stats.activeMembers}</p>
+                <p className="text-xs text-gray-500">con pago este mes</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Pendiente por cobrar</p>
+                <p className="mt-1 text-2xl font-bold">{formatMXN(stats.pendingCents)}</p>
+                <p className="text-xs text-gray-500">{stats.pendingCount} pagos pendientes</p>
+              </div>
+            </div>
+            {months.length > 0 && (
+              <div className="mt-5 overflow-x-auto">
+                <h3 className="text-sm font-medium text-gray-700">Comparativa por mes</h3>
+                <table className="mt-2 w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-500">
+                      <th className="py-1 pr-2 font-medium">Mes</th>
+                      <th className="py-1 pr-2 font-medium">Cobrado</th>
+                      <th className="py-1 pr-2 font-medium">Esperado</th>
+                      <th className="py-1 pr-2 font-medium">% cobrado</th>
+                      <th className="py-1 font-medium">Activos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {months.map((ym) => {
+                      const s = monthStats(data.payments, ym);
+                      const p = s.expectedCents > 0 ? Math.round((s.collectedCents / s.expectedCents) * 100) : 0;
+                      return (
+                        <tr key={ym} className={ym === month ? "bg-gray-100 font-semibold" : ""}>
+                          <td className="py-1 pr-2 capitalize">{formatMonthEs(ym)}</td>
+                          <td className="py-1 pr-2">{formatMXN(s.collectedCents)}</td>
+                          <td className="py-1 pr-2">{formatMXN(s.expectedCents)}</td>
+                          <td className="py-1 pr-2">{p}%</td>
+                          <td className="py-1">{s.activeMembers}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
+
+        {isAdmin && (
           <section className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
             <h2 className="text-lg font-semibold">Avisos de pago</h2>
           <p className="text-sm text-gray-600">
@@ -77,18 +148,23 @@ export default function HoyPage() {
                     <span className="text-sm text-gray-600">
                       {p.concept} · {formatMXN(p.amountCents)} · vence {formatDateEs(p.dueDate)}
                     </span>
-                    {url ? (
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="ml-auto rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
-                      >
-                        WhatsApp
-                      </a>
-                    ) : (
-                      <span className="ml-auto text-xs text-gray-500">WhatsApp: falta el teléfono del cliente</span>
-                    )}
+                    <span className="ml-auto flex items-center gap-2">
+                      <button onClick={() => markPaid(p.id)} className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700">
+                        Pagado
+                      </button>
+                      {url ? (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+                        >
+                          WhatsApp
+                        </a>
+                      ) : (
+                        <span className="text-xs text-gray-500">WhatsApp: falta el teléfono del cliente</span>
+                      )}
+                    </span>
                   </li>
                 );
               })}
