@@ -12,9 +12,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className="min-h-screen bg-gray-900 text-gray-900">
-        {/* Fondo de la app: foto del gimnasio con velo oscuro para que el contenido se lea bien. */}
-        <div aria-hidden className="fixed inset-0 -z-10 bg-cover bg-center" style={{ backgroundImage: "url(/fondo-gym.jpg)" }} />
-        <div aria-hidden className="fixed inset-0 -z-10 bg-black/60" />
         <GymProvider>
           <Header />
           {children}
