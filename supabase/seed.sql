@@ -49,8 +49,7 @@ insert into classes (id, title, type, date, start_time, duration_min, coach, cap
   (13, 'Hyrox', 'Sesión grupal', '2026-12-03', '19:00', 60, 'Jesus', 12, ''),
   (14, 'Hyrox', 'Sesión grupal', '2026-12-02', '19:00', 60, 'Jesus', 12, ''),
   (15, 'Hyrox', 'Sesión grupal', '2026-12-04', '19:00', 60, 'Jesus', 12, ''),
-  (16, 'Hyrox', 'Sesión grupal', '2026-12-03', '18:00', 60, 'Jesus', 12, ''),
-  (17, 'Hyrox', 'Sesión grupal', '2026-12-04', '07:00', 60, 'Jesus', 12, '')
+  (16, 'Hyrox', 'Sesión grupal', '2026-12-03', '18:00', 60, 'Jesus', 12, '')
 on conflict (id) do nothing;
 
 insert into payments (id, member_id, concept, amount_cents, due_date, paid_date, method) overriding system value values
@@ -127,11 +126,11 @@ insert into exercises (id, name, category, muscle_group, equipment, description)
   (22, 'Movilidad de cadera', 'Movilidad', 'Cadera', 'Peso corporal', 'Rutina de movilidad y apertura de cadera.')
 on conflict (id) do nothing;
 
--- Horarios semanales (clases en serie): reglas Hyrox lunes a viernes.
--- Las 17 clases sueltas coinciden con estas reglas y no se duplican: la app las fusiona.
+-- Horarios semanales (clases en serie): reglas Hyrox lunes a viernes (18:00 y 19:00).
+-- La serie de las 7:00 se eliminó el 2026-11-28: desde el viernes 4 dic ya no hay Hyrox 7 am.
+-- Las 16 clases sueltas coinciden con estas reglas y no se duplican: la app las fusiona.
 insert into class_rules (id, title, type, days, start_date, start_time, duration_min, capacity, coach, notes, active)
 overriding system value values
-  (1, 'Hyrox', 'Sesión grupal', array[1,2,3,4,5], '2026-11-27', '07:00', 60, 12, 'Jesus', '', true),
   (2, 'Hyrox', 'Sesión grupal', array[1,2,3,4,5], '2026-11-27', '18:00', 60, 12, 'Jesus', '', true),
   (3, 'Hyrox', 'Sesión grupal', array[1,2,3,4,5], '2026-11-27', '19:00', 60, 12, 'Jesus', '', true)
 on conflict (id) do nothing;
