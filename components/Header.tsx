@@ -27,10 +27,11 @@ const NAV_TRAINER = [
 const NAV_CLIENT = [{ href: "/portal", label: "Mi portal" }];
 
 export function Header() {
-  const { currentUser, logout, mode } = useGym();
+  const { currentUser, logout, mode, syncStatus } = useGym();
   const pathname = usePathname();
   const nav =
     currentUser?.role === "administrador" ? NAV_ADMIN : currentUser?.role === "entrenador" ? NAV_TRAINER : NAV_CLIENT;
+  const connected = mode === "supabase" && syncStatus.loadErrors.length === 0 && !syncStatus.usingSeed;
 
   return (
     <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur">
@@ -57,7 +58,10 @@ export function Header() {
             ))}
             <span className="ml-2 hidden text-xs text-gray-500 sm:inline">
               {currentUser.name} · {currentUser.role}
-              {mode === "demo" ? " · modo demo" : " · Supabase"}
+              {" · "}
+              <span className={connected ? "font-medium text-green-700" : "font-medium text-amber-700"}>
+                {connected ? "● Base compartida" : "● Datos locales"}
+              </span>
             </span>
             <button
               onClick={logout}

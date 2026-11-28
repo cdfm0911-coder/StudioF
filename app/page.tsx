@@ -7,7 +7,7 @@ import { getSetting, useGym } from "@/lib/store";
 import { DEFAULT_WHATSAPP_TEMPLATE, formatMXN, formatDateEs, formatMonthEs, mercadopagoLinkKey, monthStats, monthsWithPayments, paymentStatus, PAYMENT_STATUS_LABEL, paymentWhatsAppUrl, shiftMonth, todayISO } from "@/lib/utils";
 
 export default function HoyPage() {
-  const { data, loading, currentUser, markPaid } = useGym();
+  const { data, loading, currentUser, markPaid, syncStatus } = useGym();
   const isAdmin = currentUser?.role === "administrador";
   const today = todayISO();
   const [month, setMonth] = useState(today.slice(0, 7));
@@ -39,6 +39,33 @@ export default function HoyPage() {
       <main className="mx-auto max-w-6xl px-4 py-6">
         <h1 className="text-2xl font-bold">Hoy</h1>
         <p className="mt-1 text-sm text-gray-500">{formatDateEs(today)}</p>
+
+        {(syncStatus.usingSeed || syncStatus.loadErrors.length > 0) && (
+          <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4">
+            <p className="font-semibold text-amber-800">
+              {syncStatus.usingSeed || syncStatus.loadErrors.some((t) => t !== "settings")
+                ? "Este dispositivo no está viendo la base compartida"
+                : "Los ajustes no se están compartiendo en este dispositivo"}
+            </p>
+            <p className="mt-1 text-sm text-amber-800">
+              {syncStatus.usingSeed
+                ? "No se pudo cargar la base de datos compartida y se están mostrando datos de ejemplo. Los cambios que hagas aquí no se verán en los demás dispositivos."
+                : `No se pudieron cargar estas tablas: ${syncStatus.loadErrors.join(", ")}.`}
+            </p>
+            {syncStatus.loadErrors.includes("settings") && (
+              <p className="mt-1 text-sm text-amber-800">
+                Falta la tabla de ajustes: corre supabase/migration-settings.sql en el SQL Editor de Supabase para que
+                el mensaje de WhatsApp, el número del gimnasio y los links de Mercado Pago se compartan.
+              </p>
+            )}
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
+            >
+              Recargar
+            </button>
+          </div>
+        )}
 
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-gray-200 bg-white p-4">

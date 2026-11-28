@@ -37,6 +37,7 @@ interface GymContextValue {
   data: GymData;
   loading: boolean;
   mode: "supabase" | "demo";
+  syncStatus: { mode: "supabase" | "demo"; loadErrors: string[]; usingSeed: boolean };
   currentUser: AppUser | null;
   login: (username: string, pin: string) => string | null;
   logout: () => void;
@@ -219,6 +220,8 @@ function markManualCoach(notes: string): string {
 export function GymProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<GymData>(() => clone(SEED_DATA));
   const [loading, setLoading] = useState(true);
+  const [loadErrors, setLoadErrors] = useState<string[]>([]);
+  const [usingSeed, setUsingSeed] = useState(false);
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const mode: "supabase" | "demo" = hasSupabase ? "supabase" : "demo";
 
@@ -258,6 +261,7 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       }
       try {
         const loaded: Partial<GymData> = {};
+        const failed: string[] = [];
         for (const key of TABLES) {
           try {
             const { data: rows, error } = await sb.from(TABLE_NAME[key]).select("*").order("id");
@@ -267,12 +271,15 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
             // Una tabla que aún no existe (p. ej. class_rules antes de correr la migración)
             // no debe tumbar toda la carga: se sigue con las demás.
             console.warn(`No se pudo cargar ${TABLE_NAME[key]}, se sigue sin esa tabla:`, tableError);
+            failed.push(TABLE_NAME[key]);
             loaded[key] = [] as never;
           }
         }
+        setLoadErrors(failed);
         // Si Supabase está vacío y es la primera vez, sembrar desde los datos iniciales
         const empty = (loaded.members as Member[] | undefined)?.length === 0;
         if (empty) {
+          setUsingSeed(true);
           setData(clone(SEED_DATA));
         } else {
           setData((prev) => ({ ...prev, ...(loaded as GymData) }));
@@ -689,6 +696,7 @@ export function GymProvider({ children }: { children: React.ReactNode }) {
       data: { ...data, classes: expandedClasses, classRules: rules, classRuleSkips: ruleSkips },
       loading,
       mode,
+      syncStatus: { mode, loadErrors, usingSeed },
       currentUser,
       login,
       logout,
