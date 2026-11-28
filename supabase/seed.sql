@@ -39,12 +39,8 @@ insert into classes (id, title, type, date, start_time, duration_min, coach, cap
   (3, 'Hyrox', 'Sesión grupal', '2026-11-30', '18:00', 60, 'Jesus', 12, ''),
   (4, 'Hyrox', 'Sesión grupal', '2026-12-01', '18:00', 60, 'Jesus', 12, ''),
   (5, 'Hyrox', 'Sesión grupal', '2026-11-30', '19:00', 60, 'Jesus', 12, ''),
-  (6, 'Hyrox', 'Sesión grupal', '2026-11-30', '07:00', 60, 'Jesus', 12, ''),
-  (7, 'Hyrox', 'Sesión grupal', '2026-12-01', '07:00', 60, 'Jesus', 12, ''),
   (8, 'Hyrox', 'Sesión grupal', '2026-12-01', '19:00', 60, 'Jesus', 12, ''),
-  (9, 'Hyrox', 'Sesión grupal', '2026-12-02', '07:00', 60, 'Jesus', 12, ''),
   (10, 'Hyrox', 'Sesión grupal', '2026-12-02', '18:00', 60, 'Jesus', 12, ''),
-  (11, 'Hyrox', 'Sesión grupal', '2026-12-03', '07:00', 60, 'Jesus', 12, ''),
   (12, 'Hyrox', 'Sesión grupal', '2026-12-04', '18:00', 60, 'Jesus', 12, ''),
   (13, 'Hyrox', 'Sesión grupal', '2026-12-03', '19:00', 60, 'Jesus', 12, ''),
   (14, 'Hyrox', 'Sesión grupal', '2026-12-02', '19:00', 60, 'Jesus', 12, ''),
@@ -128,7 +124,7 @@ on conflict (id) do nothing;
 
 -- Horarios semanales (clases en serie): reglas Hyrox lunes a viernes (18:00 y 19:00).
 -- La serie de las 7:00 se eliminó el 2026-11-28: desde el viernes 4 dic ya no hay Hyrox 7 am.
--- Las 16 clases sueltas coinciden con estas reglas y no se duplican: la app las fusiona.
+-- Las 12 clases sueltas coinciden con estas reglas y no se duplican: la app las fusiona.
 insert into class_rules (id, title, type, days, start_date, start_time, duration_min, capacity, coach, notes, active)
 overriding system value values
   (2, 'Hyrox', 'Sesión grupal', array[1,2,3,4,5], '2026-11-27', '18:00', 60, 12, 'Jesus', '', true),

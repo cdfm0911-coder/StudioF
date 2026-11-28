@@ -1,12 +1,27 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { RequireAuth } from "@/components/Login";
 import { Logo } from "@/components/Logo";
 import { getSetting, useGym } from "@/lib/store";
 import { DEFAULT_WHATSAPP_TEMPLATE, formatMXN, formatDateEs, mercadopagoLinkKey, paymentWhatsAppUrl, todayISO } from "@/lib/utils";
+import { fetchForecast, phraseForToday, type ForecastDay } from "@/lib/weather";
 
 export default function PortalPage() {
   const { data, currentUser, bookMember, cancelBooking } = useGym();
+  const [forecast, setForecast] = useState<ForecastDay[] | null>(null);
+  const [forecastFailed, setForecastFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetchForecast().then((days) => {
+      if (!alive) return;
+      if (days) setForecast(days);
+      else setForecastFailed(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
   const member = currentUser?.memberId ? data.members.find((m) => m.id === currentUser.memberId) : null;
   const assignment = member ? data.assignments.find((a) => a.memberId === member.id && a.active) : null;
   const routine = assignment ? data.routines.find((r) => r.id === assignment.routineId) : null;
@@ -17,6 +32,7 @@ export default function PortalPage() {
   // --- Calendario de reserva: dos semanas (esta y la próxima), lunes a domingo,
   // con el día de la semana en cada columna y las horas como filas. ---
   const WEEKDAYS_LONG = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const WEEKDAYS_SHORT = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
   const parseDay = (iso: string) => new Date(iso + "T12:00:00");
   const toISODate = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -32,6 +48,7 @@ export default function PortalPage() {
     return toISODate(d);
   };
   const weekdayLongEs = (iso: string) => WEEKDAYS_LONG[parseDay(iso).getDay()];
+  const weekdayShortEs = (iso: string) => WEEKDAYS_SHORT[parseDay(iso).getDay()];
   const today = todayISO();
   const weeks = [0, 1].map((w) => {
     const monday = addDaysISO(mondayOf(today), w * 7);
@@ -54,6 +71,32 @@ export default function PortalPage() {
             <p className="text-sm text-gray-500">Tu portal · Studio Functional Fitness</p>
           </div>
         </div>
+
+        <section className="mt-6 overflow-hidden rounded-xl bg-gray-900 text-white">
+          <div className="p-5">
+            <p className="text-sm text-gray-300">Bienvenido a Studio Functional Fitness · Jalpan</p>
+            <p className="mt-2 text-xl font-semibold leading-snug">“{phraseForToday()}”</p>
+          </div>
+          <div className="border-t border-gray-700 px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Clima en Jalpan · próximos días</p>
+            {forecast ? (
+              <div className={`mt-3 grid gap-2 text-center ${forecast.length >= 5 ? "grid-cols-5" : "grid-cols-3"}`}>
+                {forecast.map((d, i) => (
+                  <div key={d.date}>
+                    <p className="text-xs capitalize text-gray-300">{i === 0 ? "Hoy" : weekdayShortEs(d.date)}</p>
+                    <p className="mt-1 text-2xl">{d.icon}</p>
+                    <p className="mt-1 text-sm font-semibold">{d.maxC}° / {d.minC}°</p>
+                    <p className="text-[11px] leading-tight text-gray-400">{d.label}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-gray-400">
+                {forecastFailed ? "El clima no está disponible por ahora." : "Cargando el clima…"}
+              </p>
+            )}
+          </div>
+        </section>
 
         <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
           <h2 className="text-lg font-semibold">Mi rutina</h2>
